@@ -1,69 +1,152 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
+import Link from "next/link";
+import { supabase, supabaseConfigured } from "@/lib/supabase";
+import { CITY_CENTERS } from "@/lib/cities";
+import type { PetReport } from "@/lib/types";
+
+const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
+
+const CITIES = Object.keys(CITY_CENTERS);
+
+const STATUS_LABEL: Record<string, string> = {
+  perdido: "Perdido",
+  encontrado: "Encontrado",
+  en_refugio: "En refugio",
+};
+
+export default function HomePage() {
+  const [reports, setReports] = useState<PetReport[]>([]);
+  const [loading, setLoading] = useState(supabaseConfigured);
+  const [loadError, setLoadError] = useState<string | null>(
+    supabaseConfigured ? null : "Falta configurar Supabase (.env.local)."
+  );
+  const [cityFilter, setCityFilter] = useState("todas");
+  const [statusFilter, setStatusFilter] = useState("todos");
+  const [view, setView] = useState<"lista" | "mapa">("lista");
+
+  useEffect(() => {
+    if (!supabaseConfigured) return;
+    supabase
+      .from("reports")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .then(
+        ({ data, error }) => {
+          if (error) setLoadError(error.message);
+          else setReports((data ?? []) as PetReport[]);
+          setLoading(false);
+        },
+        (err: unknown) => {
+          setLoadError(err instanceof Error ? err.message : "Error de red al cargar reportes.");
+          setLoading(false);
+        }
+      );
+  }, []);
+
+  const filtered = useMemo(() => {
+    return reports.filter((r) => {
+      if (cityFilter !== "todas" && r.city !== cityFilter) return false;
+      if (statusFilter !== "todos" && r.status !== statusFilter) return false;
+      return true;
+    });
+  }, [reports, cityFilter, statusFilter]);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <main className="flex flex-1 flex-col">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-200 p-4">
+        <div>
+          <h1 className="text-xl font-bold tracking-tight">Huellas</h1>
+          <p className="text-sm text-neutral-500">
+            Mascotas perdidas o encontradas tras el sismo del 10 de agosto
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+        <Link
+          href="/reportar"
+          className="rounded-full bg-orange-600 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-700"
+        >
+          + Reportar mascota
+        </Link>
+      </header>
+
+      <div className="flex flex-wrap items-center gap-2 border-b border-neutral-200 p-3 text-sm">
+        <select
+          value={cityFilter}
+          onChange={(e) => setCityFilter(e.target.value)}
+          className="rounded border border-neutral-300 px-2 py-1"
+        >
+          <option value="todas">Todas las ciudades</option>
+          {CITIES.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="rounded border border-neutral-300 px-2 py-1"
+        >
+          <option value="todos">Todos los estados</option>
+          <option value="perdido">Perdido</option>
+          <option value="encontrado">Encontrado</option>
+          <option value="en_refugio">En refugio</option>
+        </select>
+        <div className="ml-auto flex gap-1">
+          <button
+            onClick={() => setView("lista")}
+            className={`rounded px-3 py-1 ${view === "lista" ? "bg-neutral-900 text-white" : "border border-neutral-300"}`}
           >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            Lista
+          </button>
+          <button
+            onClick={() => setView("mapa")}
+            className={`rounded px-3 py-1 ${view === "mapa" ? "bg-neutral-900 text-white" : "border border-neutral-300"}`}
           >
-            Documentation
-          </a>
+            Mapa
+          </button>
         </div>
-      </main>
-    </div>
+      </div>
+
+      {loading ? (
+        <p className="p-6 text-neutral-500">Cargando reportes…</p>
+      ) : loadError ? (
+        <p className="p-6 text-red-600">
+          No se pudieron cargar los reportes: {loadError}. Revisa que .env.local tenga las credenciales de Supabase.
+        </p>
+      ) : view === "mapa" ? (
+        <div className="min-h-[500px] flex-1">
+          <MapView reports={filtered} />
+        </div>
+      ) : (
+        <ul className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
+          {filtered.length === 0 && (
+            <p className="text-neutral-500">No hay reportes todavía con estos filtros.</p>
+          )}
+          {filtered.map((r) => (
+            <li key={r.id} className="rounded-lg border border-neutral-200 p-3">
+              {r.photo_url && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={r.photo_url}
+                  alt={r.species}
+                  className="mb-2 h-40 w-full rounded object-cover"
+                />
+              )}
+              <p className="font-semibold capitalize">
+                {r.species} · {STATUS_LABEL[r.status]}
+              </p>
+              <p className="text-sm text-neutral-500">{r.city}</p>
+              {r.description && <p className="mt-1 text-sm">{r.description}</p>}
+              <p className="mt-2 text-xs text-neutral-400">
+                {new Date(r.created_at).toLocaleString("es-CO")}
+              </p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </main>
   );
 }
