@@ -37,13 +37,14 @@ create index if not exists reports_city_idx on public.reports (city);
 create index if not exists reports_created_at_idx on public.reports (created_at desc);
 
 alter table public.reports enable row level security;
-grant select, insert on public.reports to anon, authenticated;
+grant select on public.reports to anon, authenticated;
 
 create policy "reports_public_select" on public.reports
   for select using (true);
 
-create policy "reports_public_insert" on public.reports
-  for insert with check (true);
+-- Ya no hay INSERT directo a "reports" desde el cliente (ver Fase 2 más
+-- abajo): la única puerta de entrada es la función submit_report(), que
+-- aplica rate limiting y un honeypot antes de insertar.
 
 -- Cualquiera puede marcar un reporte como resuelto (mascota reunida con su
 -- familia), pero el grant column-level solo permite tocar esa columna: no se
@@ -53,9 +54,114 @@ grant update (resolved) on public.reports to anon, authenticated;
 create policy "reports_public_resolve" on public.reports
   for update using (true) with check (true);
 
--- Fase 2 (moderación) agregará controles más estrictos (rate limiting,
--- anti-spam); por ahora cualquiera puede publicar y resolver, que es el
--- punto de un reporte ciudadano abierto.
+-- Si ya corriste una versión anterior de este script, límpiala antes de
+-- que la función submit_report() se vuelva el único camino de inserción:
+drop policy if exists "reports_public_insert" on public.reports;
+revoke insert on public.reports from anon, authenticated;
+
+-- ============================================================
+-- Fase 2 — rate limiting y anti-spam para nuevos reportes
+-- ============================================================
+
+-- Registro de intentos por IP (hasheada, nunca se guarda la IP real).
+-- Nadie tiene acceso directo a esta tabla; solo la función de abajo,
+-- que corre con privilegios elevados (security definer).
+create table if not exists public.report_rate_limits (
+  id bigint generated always as identity primary key,
+  ip_hash text not null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists report_rate_limits_ip_idx
+  on public.report_rate_limits (ip_hash, created_at);
+
+alter table public.report_rate_limits enable row level security;
+-- Sin policies ni grants: cerrada por completo a anon/authenticated.
+
+-- Única forma de crear un reporte. Corre con los privilegios del dueño de
+-- la función (security definer), así que puede leer/escribir report_rate_limits
+-- y reports aunque el que llama (anon) no tenga permiso directo sobre esas
+-- tablas. Rechaza envíos con el campo trampa (honeypot) lleno, envíos
+-- sospechosamente rápidos, y más de 6 reportes por IP en 20 minutos.
+create or replace function public.submit_report(
+  p_name text,
+  p_species text,
+  p_breed text,
+  p_sex text,
+  p_status text,
+  p_photo_url text,
+  p_lat double precision,
+  p_lng double precision,
+  p_city text,
+  p_description text,
+  p_contact text,
+  p_honeypot text default null,
+  p_form_loaded_at timestamptz default null
+) returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_ip text;
+  v_ip_hash text;
+  v_recent_count int;
+  v_new_id uuid;
+begin
+  if p_honeypot is not null and length(trim(p_honeypot)) > 0 then
+    raise exception 'Solicitud inválida.';
+  end if;
+
+  if p_form_loaded_at is not null and now() - p_form_loaded_at < interval '3 seconds' then
+    raise exception 'Solicitud inválida.';
+  end if;
+
+  v_ip := coalesce(
+    nullif(split_part(current_setting('request.headers', true)::json ->> 'x-forwarded-for', ',', 1), ''),
+    'unknown'
+  );
+  v_ip_hash := encode(digest(v_ip, 'sha256'), 'hex');
+
+  select count(*) into v_recent_count
+  from public.report_rate_limits
+  where ip_hash = v_ip_hash
+    and created_at > now() - interval '20 minutes';
+
+  if v_recent_count >= 6 then
+    raise exception 'Estás publicando reportes muy seguido. Espera unos minutos e intenta de nuevo.';
+  end if;
+
+  insert into public.report_rate_limits (ip_hash) values (v_ip_hash);
+
+  insert into public.reports (
+    name, species, breed, sex, status, photo_url, lat, lng, city, description, contact
+  ) values (
+    p_name, p_species, p_breed, p_sex, p_status, p_photo_url, p_lat, p_lng, p_city, p_description, p_contact
+  )
+  returning id into v_new_id;
+
+  return v_new_id;
+end;
+$$;
+
+grant execute on function public.submit_report(
+  text, text, text, text, text, text, double precision, double precision, text, text, text, text, timestamptz
+) to anon, authenticated;
+
+-- "Reportar contenido": cualquiera puede marcar un reporte para revisión.
+-- Sin lectura pública; se revisa desde el Table Editor de Supabase.
+create table if not exists public.report_flags (
+  id uuid primary key default gen_random_uuid(),
+  report_id uuid not null references public.reports (id) on delete cascade,
+  reason text,
+  created_at timestamptz not null default now()
+);
+
+alter table public.report_flags enable row level security;
+grant insert on public.report_flags to anon, authenticated;
+
+create policy "report_flags_public_insert" on public.report_flags
+  for insert with check (true);
 
 create table if not exists public.shelters (
   id uuid primary key default gen_random_uuid(),

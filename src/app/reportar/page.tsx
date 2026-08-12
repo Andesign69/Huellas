@@ -74,6 +74,8 @@ function ReportarForm() {
   const [locationError, setLocationError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [honeypot, setHoneypot] = useState("");
+  const [formLoadedAt] = useState(() => new Date().toISOString());
 
   function useMyLocation() {
     setLocationError(null);
@@ -145,24 +147,26 @@ function ReportarForm() {
       photo_url = supabase.storage.from("pet-photos").getPublicUrl(path).data.publicUrl;
     }
 
-    const { error: insertError } = await supabase.from("reports").insert({
-      name: name.trim() || null,
-      species,
-      breed: breed.trim() || null,
-      sex: sex || null,
-      status,
-      city,
-      description: description || null,
-      contact,
-      photo_url,
-      lat: pos.lat,
-      lng: pos.lng,
+    const { error: rpcError } = await supabase.rpc("submit_report", {
+      p_name: name.trim() || null,
+      p_species: species,
+      p_breed: breed.trim() || null,
+      p_sex: sex || null,
+      p_status: status,
+      p_photo_url: photo_url,
+      p_lat: pos.lat,
+      p_lng: pos.lng,
+      p_city: city,
+      p_description: description || null,
+      p_contact: contact,
+      p_honeypot: honeypot || null,
+      p_form_loaded_at: formLoadedAt,
     });
 
     setSubmitting(false);
 
-    if (insertError) {
-      setError("No se pudo guardar el reporte: " + insertError.message);
+    if (rpcError) {
+      setError(rpcError.message);
       return;
     }
 
@@ -180,6 +184,20 @@ function ReportarForm() {
       </p>
 
       <form onSubmit={handleSubmit} className="mt-5 flex flex-col gap-4 pb-8">
+        {/* Honeypot: invisible para personas, los bots que llenan todos los campos caen aquí. */}
+        <div className="absolute left-[-9999px] top-auto h-0 w-0 overflow-hidden" aria-hidden="true">
+          <label htmlFor="website">No llenar este campo</label>
+          <input
+            id="website"
+            name="website"
+            type="text"
+            tabIndex={-1}
+            autoComplete="off"
+            value={honeypot}
+            onChange={(e) => setHoneypot(e.target.value)}
+          />
+        </div>
+
         <Section icon={Info} title="Información básica">
           <div>
             <Label className="mb-1.5">Estado del reporte</Label>

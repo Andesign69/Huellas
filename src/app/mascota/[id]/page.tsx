@@ -3,10 +3,11 @@
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { ArrowLeft, PawPrint, MessageCircle, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, PawPrint, MessageCircle, CheckCircle2, Flag } from "lucide-react";
 import { supabase, supabaseConfigured } from "@/lib/supabase";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { timeAgo } from "@/lib/time";
 import type { PetReport } from "@/lib/types";
 
@@ -39,6 +40,27 @@ export default function MascotaDetailPage({ params }: { params: Promise<{ id: st
   const [confirmingResolve, setConfirmingResolve] = useState(false);
   const [resolving, setResolving] = useState(false);
   const [resolveError, setResolveError] = useState<string | null>(null);
+  const [flagging, setFlagging] = useState(false);
+  const [flagReason, setFlagReason] = useState("");
+  const [flagSubmitting, setFlagSubmitting] = useState(false);
+  const [flagError, setFlagError] = useState<string | null>(null);
+  const [flagSubmitted, setFlagSubmitted] = useState(false);
+
+  async function handleFlag() {
+    if (!report) return;
+    setFlagSubmitting(true);
+    setFlagError(null);
+    const { error: flagErrorResult } = await supabase
+      .from("report_flags")
+      .insert({ report_id: report.id, reason: flagReason.trim() || null });
+    setFlagSubmitting(false);
+    if (flagErrorResult) {
+      setFlagError("No se pudo enviar: " + flagErrorResult.message);
+      return;
+    }
+    setFlagSubmitted(true);
+    setFlagging(false);
+  }
 
   async function handleResolve() {
     if (!report) return;
@@ -144,6 +166,48 @@ export default function MascotaDetailPage({ params }: { params: Promise<{ id: st
 
           <div className="mx-4 mt-4 h-56 overflow-hidden rounded-2xl border border-border">
             <MapView reports={[report]} />
+          </div>
+
+          <div className="mx-4 mt-3">
+            {flagSubmitted ? (
+              <p className="text-center text-xs text-muted-foreground">
+                Gracias, vamos a revisar este reporte.
+              </p>
+            ) : flagging ? (
+              <div className="flex flex-col gap-2 rounded-2xl border border-border bg-card p-3">
+                <p className="text-sm font-semibold">¿Qué tiene de malo este reporte?</p>
+                <Textarea
+                  value={flagReason}
+                  onChange={(e) => setFlagReason(e.target.value)}
+                  placeholder="Opcional: cuéntanos qué está mal (spam, información falsa, foto inapropiada...)"
+                  rows={2}
+                />
+                {flagError && <p className="text-xs text-destructive">{flagError}</p>}
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => setFlagging(false)}
+                    disabled={flagSubmitting}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button type="button" className="flex-1" onClick={handleFlag} disabled={flagSubmitting}>
+                    {flagSubmitting ? "Enviando…" : "Enviar reporte"}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setFlagging(true)}
+                className="flex w-full items-center justify-center gap-1.5 py-1 text-center text-xs font-medium text-muted-foreground underline underline-offset-2"
+              >
+                <Flag className="h-3 w-3" />
+                Reportar contenido inapropiado
+              </button>
+            )}
           </div>
 
           {report.resolved ? (
