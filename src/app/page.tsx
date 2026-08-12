@@ -41,7 +41,7 @@ export default function HomePage() {
     <main className="flex flex-1 flex-col px-4 pt-5">
       <header className="mb-5 flex items-center gap-2">
         <PawPrint className="h-6 w-6 text-primary" />
-        <span className="font-heading text-lg font-bold">Refugio Huellas</span>
+        <span className="font-heading text-lg font-bold">Rastrea Huellas</span>
       </header>
 
       <h1 className="font-heading text-2xl font-extrabold leading-tight text-balance">

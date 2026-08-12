@@ -116,9 +116,18 @@ export default function MapaPage() {
           />
         </div>
 
-        <PillGroup value={cityFilter} onChange={setCityFilter} options={cityOptions} size="sm" />
-        <PillGroup value={statusFilter} onChange={setStatusFilter} options={STATUS_OPTIONS} size="sm" />
-        <PillGroup value={speciesFilter} onChange={setSpeciesFilter} options={SPECIES_OPTIONS} size="sm" />
+        <div>
+          <p className="mb-1 text-xs font-semibold text-muted-foreground">Ciudad</p>
+          <PillGroup value={cityFilter} onChange={setCityFilter} options={cityOptions} size="sm" />
+        </div>
+        <div>
+          <p className="mb-1 text-xs font-semibold text-muted-foreground">Estado</p>
+          <PillGroup value={statusFilter} onChange={setStatusFilter} options={STATUS_OPTIONS} size="sm" />
+        </div>
+        <div>
+          <p className="mb-1 text-xs font-semibold text-muted-foreground">Especie</p>
+          <PillGroup value={speciesFilter} onChange={setSpeciesFilter} options={SPECIES_OPTIONS} size="sm" />
+        </div>
       </div>
 
       {loading ? (

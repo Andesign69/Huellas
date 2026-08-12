@@ -12,7 +12,7 @@ export default function AyudaPage() {
         <h1 className="font-heading text-xl font-bold">Ayuda</h1>
       </header>
       <p className="mb-5 text-sm text-muted-foreground">
-        Sobre Refugio Huellas, y cómo apoyar la respuesta al sismo o el mantenimiento de esta
+        Sobre Rastrea Huellas, y cómo apoyar la respuesta al sismo o el mantenimiento de esta
         herramienta.
       </p>
 
@@ -38,7 +38,7 @@ export default function AyudaPage() {
       <section className="mt-4 rounded-xl p-4">
         <h2 className="text-sm font-bold text-muted-foreground">Sobre esta app</h2>
         <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
-          Refugio Huellas fue creada por Andrés Martínez para ayudar a reunir mascotas perdidas y
+          Rastrea Huellas fue creada por Andrés Martínez para ayudar a reunir mascotas perdidas y
           encontradas tras el sismo del 10 de agosto de 2026 en Colombia. Es una app gratuita y sin
           ánimo de lucro, construida por voluntad propia para apoyar a la comunidad afectada. No
           reemplaza a las autoridades, a la Cruz Roja ni a los organismos oficiales de emergencia.

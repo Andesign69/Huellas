@@ -27,6 +27,15 @@ function Recenter({ center, active }: { center: [number, number]; active: boolea
   return null;
 }
 
+function FlyTo({ target }: { target: [number, number] | null }) {
+  const map = useMap();
+  useEffect(() => {
+    if (target) map.setView(target, 16);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [target?.[0], target?.[1]]);
+  return null;
+}
+
 function ClickHandler({ onPick }: { onPick: (lat: number, lng: number) => void }) {
   useMapEvents({
     click(e) {
@@ -40,10 +49,12 @@ export default function LocationPicker({
   value,
   onChange,
   center,
+  flyTo,
 }: {
   value: { lat: number; lng: number } | null;
   onChange: (lat: number, lng: number) => void;
   center: [number, number];
+  flyTo?: [number, number] | null;
 }) {
   return (
     <MapContainer
@@ -54,6 +65,7 @@ export default function LocationPicker({
     >
       <TileLayer url={tileUrl} attribution="" />
       <Recenter center={center} active={!value} />
+      <FlyTo target={flyTo ?? null} />
       <ClickHandler onPick={onChange} />
       {value && <Marker position={[value.lat, value.lng]} icon={pinIcon} />}
     </MapContainer>

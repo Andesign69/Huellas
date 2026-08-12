@@ -20,7 +20,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Refugio Huellas — mascotas del terremoto",
+  title: "Rastrea Huellas — mascotas del terremoto",
   description: "Reporta y busca mascotas perdidas o encontradas tras el sismo del 10 de agosto en Colombia.",
 };
 

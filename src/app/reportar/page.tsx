@@ -10,13 +10,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import PillGroup from "@/components/PillGroup";
 import type { ReportStatus, Sex, Species } from "@/lib/types";
 
@@ -32,6 +25,11 @@ const SPECIES_OPTIONS: { value: Species; label: string }[] = [
   { value: "perro", label: "Perro" },
   { value: "gato", label: "Gato" },
   { value: "otro", label: "Otro" },
+];
+
+const SEX_OPTIONS: { value: Sex; label: string }[] = [
+  { value: "macho", label: "Macho" },
+  { value: "hembra", label: "Hembra" },
 ];
 
 function Section({
@@ -71,26 +69,44 @@ function ReportarForm() {
   const [contact, setContact] = useState("");
   const [photo, setPhoto] = useState<File | null>(null);
   const [pos, setPos] = useState<{ lat: number; lng: number } | null>(null);
+  const [gpsFocus, setGpsFocus] = useState<[number, number] | null>(null);
   const [locating, setLocating] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   function useMyLocation() {
-    if (!navigator.geolocation) {
-      setError("Tu navegador no soporta geolocalización. Toca el mapa para marcar el punto.");
+    setLocationError(null);
+
+    if (!window.isSecureContext) {
+      setLocationError(
+        "La ubicación solo funciona en una conexión segura (https). Toca el mapa para marcarla a mano."
+      );
       return;
     }
+    if (!navigator.geolocation) {
+      setLocationError("Tu navegador no soporta geolocalización. Toca el mapa para marcar el punto.");
+      return;
+    }
+
     setLocating(true);
     navigator.geolocation.getCurrentPosition(
       (p) => {
-        setPos({ lat: p.coords.latitude, lng: p.coords.longitude });
+        const next: [number, number] = [p.coords.latitude, p.coords.longitude];
+        setPos({ lat: next[0], lng: next[1] });
+        setGpsFocus(next);
         setLocating(false);
       },
-      () => {
-        setError("No pudimos acceder a tu ubicación. Toca el mapa para marcarla a mano.");
+      (err) => {
+        const messages: Record<number, string> = {
+          1: "Bloqueaste el permiso de ubicación para este sitio. Actívalo en los ajustes del navegador, o toca el mapa para marcarla a mano.",
+          2: "No pudimos determinar tu ubicación (GPS apagado o sin señal). Toca el mapa para marcarla a mano.",
+          3: "Se agotó el tiempo buscando tu ubicación. Intenta de nuevo o toca el mapa para marcarla a mano.",
+        };
+        setLocationError(messages[err.code] ?? "No pudimos acceder a tu ubicación. Toca el mapa para marcarla a mano.");
         setLocating(false);
       },
-      { enableHighAccuracy: true, timeout: 10000 }
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
   }
 
@@ -196,15 +212,7 @@ function ReportarForm() {
 
           <div>
             <Label className="mb-1.5">Sexo</Label>
-            <Select value={sex} onValueChange={(v) => setSex((v as Sex) ?? "")}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Selecciona una opción" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="macho">Macho</SelectItem>
-                <SelectItem value="hembra">Hembra</SelectItem>
-              </SelectContent>
-            </Select>
+            <PillGroup value={sex} onChange={setSex} options={SEX_OPTIONS} allowDeselect />
           </div>
         </Section>
 
@@ -238,10 +246,16 @@ function ReportarForm() {
             <LocateFixed className="h-4 w-4" />
             {locating ? "Buscando tu ubicación…" : "Usar mi ubicación actual"}
           </Button>
+          {locationError && <p className="text-sm text-destructive">{locationError}</p>}
 
           <div>
             <Label className="mb-1.5">Ajusta el punto exacto en el mapa</Label>
-            <LocationPicker value={pos} onChange={(lat, lng) => setPos({ lat, lng })} center={centerForCity(city)} />
+            <LocationPicker
+              value={pos}
+              onChange={(lat, lng) => setPos({ lat, lng })}
+              center={centerForCity(city)}
+              flyTo={gpsFocus}
+            />
           </div>
           <p className="text-xs text-muted-foreground">
             Una ubicación precisa ayuda a los voluntarios de la zona a enfocar la búsqueda.
@@ -260,7 +274,6 @@ function ReportarForm() {
               <input
                 type="file"
                 accept="image/*"
-                capture="environment"
                 className="hidden"
                 onChange={(e) => setPhoto(e.target.files?.[0] ?? null)}
               />
@@ -297,7 +310,7 @@ function ReportarForm() {
         {error && <p className="text-sm text-destructive">{error}</p>}
 
         <p className="text-center text-xs text-muted-foreground">
-          Al publicar, tu reporte será visible para cualquiera que visite Refugio Huellas.
+          Al publicar, tu reporte será visible para cualquiera que visite Rastrea Huellas.
         </p>
 
         <Button type="submit" disabled={submitting} className="w-full py-6 text-base">

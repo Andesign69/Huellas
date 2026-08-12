@@ -84,7 +84,7 @@ export default function MascotaDetailPage({ params }: { params: Promise<{ id: st
         <Link href="/" className="text-foreground">
           <ArrowLeft className="h-5 w-5" />
         </Link>
-        <span className="font-heading text-lg font-bold">Refugio Huellas</span>
+        <span className="font-heading text-lg font-bold">Rastrea Huellas</span>
       </header>
 
       {loading ? (
@@ -159,8 +159,8 @@ export default function MascotaDetailPage({ params }: { params: Promise<{ id: st
                 href={whatsappLink(
                   report.contact,
                   report.status === "perdido"
-                    ? `Hola, vi tu reporte de ${report.name?.trim() || SPECIES_LABEL[report.species]} en Refugio Huellas.`
-                    : `Hola, creo que ${report.name?.trim() || "esta mascota"} que reportaste encontrada en Refugio Huellas es mía.`
+                    ? `Hola, vi tu reporte de ${report.name?.trim() || SPECIES_LABEL[report.species]} en Rastrea Huellas.`
+                    : `Hola, creo que ${report.name?.trim() || "esta mascota"} que reportaste encontrada en Rastrea Huellas es mía.`
                 )}
                 target="_blank"
                 rel="noopener noreferrer"

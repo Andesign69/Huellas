@@ -53,8 +53,8 @@ export default function SugerirRefugioPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             access_key: WEB3FORMS_KEY,
-            subject: `Refugio Huellas — nueva fundación sugerida: ${name}`,
-            from_name: "Refugio Huellas",
+            subject: `Rastrea Huellas — nueva fundación sugerida: ${name}`,
+            from_name: "Rastrea Huellas",
             Fundación: name,
             Ciudad: city,
             Contacto: contact,
