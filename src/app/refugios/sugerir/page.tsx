@@ -9,8 +9,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 
-const WEB3FORMS_KEY = process.env.NEXT_PUBLIC_WEB3FORMS_KEY;
-
 export default function SugerirRefugioPage() {
   const router = useRouter();
   const [name, setName] = useState("");
@@ -44,27 +42,6 @@ export default function SugerirRefugioPage() {
       setSubmitting(false);
       setError("No se pudo enviar: " + insertError.message);
       return;
-    }
-
-    if (WEB3FORMS_KEY) {
-      try {
-        await fetch("https://api.web3forms.com/submit", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            access_key: WEB3FORMS_KEY,
-            subject: `Rastrea Huellas — nueva fundación sugerida: ${name}`,
-            from_name: "Rastrea Huellas",
-            Fundación: name,
-            Ciudad: city,
-            Contacto: contact,
-            "Sitio / Instagram": website || "—",
-            Notas: notes || "—",
-          }),
-        });
-      } catch {
-        // El registro en Supabase ya quedó guardado; el correo es un aviso extra.
-      }
     }
 
     setSubmitting(false);
