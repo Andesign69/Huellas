@@ -65,10 +65,12 @@ export default function MapaPage() {
     return [{ value: "todas", label: "Todas" }, ...cities.map((c) => ({ value: c, label: c }))];
   }, [reports]);
 
+  const effectiveCityFilter = cityOptions.length > 2 ? cityFilter : "todas";
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return reports.filter((r) => {
-      if (cityFilter !== "todas" && r.city !== cityFilter) return false;
+      if (effectiveCityFilter !== "todas" && r.city !== effectiveCityFilter) return false;
       if (statusFilter !== "todos" && r.status !== statusFilter) return false;
       if (speciesFilter !== "todas" && r.species !== speciesFilter) return false;
       if (q) {
@@ -77,7 +79,7 @@ export default function MapaPage() {
       }
       return true;
     });
-  }, [reports, cityFilter, statusFilter, speciesFilter, query]);
+  }, [reports, effectiveCityFilter, statusFilter, speciesFilter, query]);
 
   return (
     <main className="flex flex-1 flex-col">
@@ -116,10 +118,12 @@ export default function MapaPage() {
           />
         </div>
 
-        <div>
-          <p className="mb-1 text-xs font-semibold text-muted-foreground">Ciudad</p>
-          <PillGroup value={cityFilter} onChange={setCityFilter} options={cityOptions} size="sm" />
-        </div>
+        {cityOptions.length > 2 && (
+          <div>
+            <p className="mb-1 text-xs font-semibold text-muted-foreground">Ciudad</p>
+            <PillGroup value={cityFilter} onChange={setCityFilter} options={cityOptions} size="sm" />
+          </div>
+        )}
         <div>
           <p className="mb-1 text-xs font-semibold text-muted-foreground">Estado</p>
           <PillGroup value={statusFilter} onChange={setStatusFilter} options={STATUS_OPTIONS} size="sm" />
