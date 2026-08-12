@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, PlusCircle, Map, Heart, LifeBuoy } from "lucide-react";
+import { Home, PlusCircle, ClipboardList, Heart, LifeBuoy } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const ITEMS = [
   { href: "/", label: "Inicio", icon: Home },
   { href: "/reportar", label: "Reportar", icon: PlusCircle },
-  { href: "/mapa", label: "Mapa", icon: Map },
+  { href: "/mapa", label: "Reportes", icon: ClipboardList },
   { href: "/refugios", label: "Refugios", icon: Heart },
   { href: "/ayuda", label: "Ayuda", icon: LifeBuoy },
 ];
