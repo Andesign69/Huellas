@@ -46,14 +46,14 @@ create policy "reports_public_select" on public.reports
 -- abajo): la única puerta de entrada es la función submit_report(), que
 -- aplica rate limiting y un honeypot antes de insertar.
 
--- Cualquiera puede marcar un reporte como resuelto (mascota reunida con su
--- familia), pero el grant column-level solo permite tocar esa columna: no se
--- puede reescribir el contacto, la foto ni la descripción de otra persona.
-grant update (resolved) on public.reports to anon, authenticated;
-
+-- Marcar como resuelto YA NO es un UPDATE abierto: cualquiera podía cerrar
+-- el reporte de cualquier otra persona sin verificación. Ahora solo se
+-- puede a través de resolve_report() (más abajo), que exige el token
+-- secreto que se entrega al crear el reporte y se guarda en el navegador
+-- de quien lo publicó.
+revoke update (resolved) on public.reports from anon, authenticated;
+revoke update on public.reports from anon, authenticated;
 drop policy if exists "reports_public_resolve" on public.reports;
-create policy "reports_public_resolve" on public.reports
-  for update using (true) with check (true);
 
 -- Si ya corriste una versión anterior de este script, límpiala antes de
 -- que la función submit_report() se vuelva el único camino de inserción:
@@ -79,12 +79,32 @@ create index if not exists report_rate_limits_ip_idx
 alter table public.report_rate_limits enable row level security;
 -- Sin policies ni grants: cerrada por completo a anon/authenticated.
 
+-- Token secreto de cada reporte: solo quien lo creó lo tiene (se lo
+-- devuelve submit_report() y el navegador lo guarda en localStorage).
+-- Es la única forma de marcar ese reporte como resuelto. Cerrada por
+-- completo a anon/authenticated: nadie puede leerla directamente.
+create table if not exists public.report_tokens (
+  report_id uuid primary key references public.reports (id) on delete cascade,
+  token text not null,
+  created_at timestamptz not null default now()
+);
+
+alter table public.report_tokens enable row level security;
+
+-- Debe ir antes de crear la nueva versión: create or replace no permite
+-- cambiar el tipo de retorno de una función existente.
+drop function if exists public.submit_report(
+  text, text, text, text, text, text, double precision, double precision, text, text, text, text, timestamptz
+);
+
 -- Única forma de crear un reporte. Corre con los privilegios del dueño de
 -- la función (security definer), así que puede leer/escribir report_rate_limits
 -- y reports aunque el que llama (anon) no tenga permiso directo sobre esas
 -- tablas. Rechaza envíos con el campo trampa (honeypot) lleno, envíos
 -- sospechosamente rápidos, y más de 6 reportes por IP en 20 minutos.
-create or replace function public.submit_report(
+-- Devuelve el id del reporte y un token secreto de una sola vez: es lo
+-- único que permite luego marcarlo como resuelto (ver resolve_report()).
+create function public.submit_report(
   p_name text,
   p_species text,
   p_breed text,
@@ -98,7 +118,7 @@ create or replace function public.submit_report(
   p_contact text,
   p_honeypot text default null,
   p_form_loaded_at timestamptz default null
-) returns uuid
+) returns table (id uuid, resolve_token text)
 language plpgsql
 security definer
 set search_path = public, extensions
@@ -108,6 +128,7 @@ declare
   v_ip_hash text;
   v_recent_count int;
   v_new_id uuid;
+  v_token text;
 begin
   if p_honeypot is not null and length(trim(p_honeypot)) > 0 then
     raise exception 'Solicitud inválida.';
@@ -139,15 +160,48 @@ begin
   ) values (
     p_name, p_species, p_breed, p_sex, p_status, p_photo_url, p_lat, p_lng, p_city, p_description, p_contact
   )
-  returning id into v_new_id;
+  returning reports.id into v_new_id;
 
-  return v_new_id;
+  v_token := encode(gen_random_bytes(16), 'hex');
+  insert into public.report_tokens (report_id, token) values (v_new_id, v_token);
+
+  return query select v_new_id, v_token;
 end;
 $$;
 
 grant execute on function public.submit_report(
   text, text, text, text, text, text, double precision, double precision, text, text, text, text, timestamptz
 ) to anon, authenticated;
+
+-- Única forma de marcar un reporte como resuelto: exige el token que
+-- solo tiene el navegador que lo creó. Devuelve true si funcionó.
+create or replace function public.resolve_report(
+  p_report_id uuid,
+  p_token text
+) returns boolean
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  v_match boolean;
+begin
+  select exists (
+    select 1 from public.report_tokens
+    where report_id = p_report_id and token = p_token
+  ) into v_match;
+
+  if not v_match then
+    raise exception 'No tienes permiso para marcar este reporte como resuelto.';
+  end if;
+
+  update public.reports set resolved = true where id = p_report_id;
+
+  return true;
+end;
+$$;
+
+grant execute on function public.resolve_report(uuid, text) to anon, authenticated;
 
 -- "Reportar contenido": cualquiera puede marcar un reporte para revisión.
 -- Sin lectura pública; se revisa desde el Table Editor de Supabase.

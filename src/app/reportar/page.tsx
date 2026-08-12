@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { LocateFixed, Info, MapPin, Camera, Megaphone } from "lucide-react";
 import { supabase, supabaseConfigured } from "@/lib/supabase";
 import { SUGGESTED_CITIES, centerForCity } from "@/lib/cities";
+import { saveResolveToken } from "@/lib/resolveTokens";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -147,7 +148,7 @@ function ReportarForm() {
       photo_url = supabase.storage.from("pet-photos").getPublicUrl(path).data.publicUrl;
     }
 
-    const { error: rpcError } = await supabase.rpc("submit_report", {
+    const { data: rpcData, error: rpcError } = await supabase.rpc("submit_report", {
       p_name: name.trim() || null,
       p_species: species,
       p_breed: breed.trim() || null,
@@ -168,6 +169,11 @@ function ReportarForm() {
     if (rpcError) {
       setError(rpcError.message);
       return;
+    }
+
+    const created = rpcData?.[0];
+    if (created?.id && created?.resolve_token) {
+      saveResolveToken(created.id, created.resolve_token);
     }
 
     router.push("/");

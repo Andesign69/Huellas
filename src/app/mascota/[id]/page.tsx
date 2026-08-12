@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { timeAgo } from "@/lib/time";
+import { getResolveToken } from "@/lib/resolveTokens";
 import type { PetReport } from "@/lib/types";
 
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
@@ -45,6 +46,7 @@ export default function MascotaDetailPage({ params }: { params: Promise<{ id: st
   const [flagSubmitting, setFlagSubmitting] = useState(false);
   const [flagError, setFlagError] = useState<string | null>(null);
   const [flagSubmitted, setFlagSubmitted] = useState(false);
+  const [resolveToken] = useState<string | null>(() => getResolveToken(id));
 
   async function handleFlag() {
     if (!report) return;
@@ -63,16 +65,16 @@ export default function MascotaDetailPage({ params }: { params: Promise<{ id: st
   }
 
   async function handleResolve() {
-    if (!report) return;
+    if (!report || !resolveToken) return;
     setResolving(true);
     setResolveError(null);
-    const { error: updateError } = await supabase
-      .from("reports")
-      .update({ resolved: true })
-      .eq("id", report.id);
+    const { error: rpcError } = await supabase.rpc("resolve_report", {
+      p_report_id: report.id,
+      p_token: resolveToken,
+    });
     setResolving(false);
-    if (updateError) {
-      setResolveError("No se pudo actualizar: " + updateError.message);
+    if (rpcError) {
+      setResolveError("No se pudo actualizar: " + rpcError.message);
       return;
     }
     setReport({ ...report, resolved: true });
@@ -218,7 +220,7 @@ export default function MascotaDetailPage({ params }: { params: Promise<{ id: st
               </p>
             </div>
           ) : (
-            <div className="sticky bottom-20 mx-4 mt-4 mb-6 flex flex-col gap-2">
+            <div className="mx-4 mt-4 mb-6 flex flex-col gap-2">
               <a
                 href={whatsappLink(
                   report.contact,
@@ -234,34 +236,35 @@ export default function MascotaDetailPage({ params }: { params: Promise<{ id: st
                 {report.status === "perdido" ? "Contactar" : "Soy el dueño"}
               </a>
 
-              {confirmingResolve ? (
-                <div className="flex flex-col gap-2 rounded-2xl border border-border bg-card p-3">
-                  <p className="text-center text-sm">¿Ya está en casa? Esto lo quita de los reportes.</p>
-                  {resolveError && <p className="text-center text-xs text-destructive">{resolveError}</p>}
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() => setConfirmingResolve(false)}
-                      disabled={resolving}
-                    >
-                      Cancelar
-                    </Button>
-                    <Button type="button" className="flex-1" onClick={handleResolve} disabled={resolving}>
-                      {resolving ? "Guardando…" : "Sí, marcar resuelto"}
-                    </Button>
+              {resolveToken &&
+                (confirmingResolve ? (
+                  <div className="flex flex-col gap-2 rounded-2xl border border-border bg-card p-3">
+                    <p className="text-center text-sm">¿Ya está en casa? Esto lo quita de los reportes.</p>
+                    {resolveError && <p className="text-center text-xs text-destructive">{resolveError}</p>}
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => setConfirmingResolve(false)}
+                        disabled={resolving}
+                      >
+                        Cancelar
+                      </Button>
+                      <Button type="button" className="flex-1" onClick={handleResolve} disabled={resolving}>
+                        {resolving ? "Guardando…" : "Sí, marcar resuelto"}
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setConfirmingResolve(true)}
-                  className="py-1.5 text-center text-xs font-medium text-muted-foreground underline underline-offset-2"
-                >
-                  Marcar como resuelto
-                </button>
-              )}
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmingResolve(true)}
+                    className="py-1.5 text-center text-xs font-medium text-muted-foreground underline underline-offset-2"
+                  >
+                    Marcar como resuelto
+                  </button>
+                ))}
             </div>
           )}
         </>
