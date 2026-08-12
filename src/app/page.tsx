@@ -1,21 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import dynamic from "next/dynamic";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { PawPrint, Search, HeartHandshake } from "lucide-react";
 import { supabase, supabaseConfigured } from "@/lib/supabase";
-import { CITY_CENTERS } from "@/lib/cities";
+import PetCard from "@/components/PetCard";
 import type { PetReport } from "@/lib/types";
-
-const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
-
-const CITIES = Object.keys(CITY_CENTERS);
-
-const STATUS_LABEL: Record<string, string> = {
-  perdido: "Perdido",
-  encontrado: "Encontrado",
-  en_refugio: "En refugio",
-};
 
 export default function HomePage() {
   const [reports, setReports] = useState<PetReport[]>([]);
@@ -23,9 +13,6 @@ export default function HomePage() {
   const [loadError, setLoadError] = useState<string | null>(
     supabaseConfigured ? null : "Falta configurar Supabase (.env.local)."
   );
-  const [cityFilter, setCityFilter] = useState("todas");
-  const [statusFilter, setStatusFilter] = useState("todos");
-  const [view, setView] = useState<"lista" | "mapa">("lista");
 
   useEffect(() => {
     if (!supabaseConfigured) return;
@@ -33,6 +20,7 @@ export default function HomePage() {
       .from("reports")
       .select("*")
       .order("created_at", { ascending: false })
+      .limit(20)
       .then(
         ({ data, error }) => {
           if (error) setLoadError(error.message);
@@ -46,103 +34,73 @@ export default function HomePage() {
       );
   }, []);
 
-  const filtered = useMemo(() => {
-    return reports.filter((r) => {
-      if (cityFilter !== "todas" && r.city !== cityFilter) return false;
-      if (statusFilter !== "todos" && r.status !== statusFilter) return false;
-      return true;
-    });
-  }, [reports, cityFilter, statusFilter]);
-
   return (
-    <main className="flex flex-1 flex-col">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-200 p-4">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight">Huellas</h1>
-          <p className="text-sm text-neutral-500">
-            Mascotas perdidas o encontradas tras el sismo del 10 de agosto
-          </p>
-        </div>
-        <Link
-          href="/reportar"
-          className="rounded-full bg-orange-600 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-700"
-        >
-          + Reportar mascota
-        </Link>
+    <main className="flex flex-1 flex-col px-4 pt-5">
+      <header className="mb-5 flex items-center gap-2">
+        <PawPrint className="h-6 w-6 text-primary" />
+        <span className="font-heading text-lg font-bold">Refugio Huellas</span>
       </header>
 
-      <div className="flex flex-wrap items-center gap-2 border-b border-neutral-200 p-3 text-sm">
-        <select
-          value={cityFilter}
-          onChange={(e) => setCityFilter(e.target.value)}
-          className="rounded border border-neutral-300 px-2 py-1"
+      <h1 className="font-heading text-2xl font-extrabold leading-tight text-balance">
+        Estamos aquí para ayudarte a reunirte con tu mejor amigo.
+      </h1>
+      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+        En momentos difíciles, la comunidad se une. Reporta mascotas perdidas o encontradas tras el
+        sismo y ayuda a que vuelvan a casa a salvo.
+      </p>
+
+      <div className="mt-5 flex flex-col gap-3">
+        <Link
+          href="/reportar?status=perdido"
+          className="flex flex-col gap-3 rounded-2xl border border-border bg-tertiary p-5"
         >
-          <option value="todas">Todas las ciudades</option>
-          {CITIES.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="rounded border border-neutral-300 px-2 py-1"
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-card text-primary">
+            <Search className="h-5 w-5" />
+          </span>
+          <span>
+            <span className="block font-heading text-lg font-bold text-tertiary-foreground">
+              He perdido una mascota
+            </span>
+            <span className="mt-0.5 block text-sm text-tertiary-foreground/70">
+              Crea un reporte detallado para que la comunidad te ayude a buscarla.
+            </span>
+          </span>
+        </Link>
+
+        <Link
+          href="/reportar?status=encontrado"
+          className="flex flex-col gap-3 rounded-2xl bg-primary p-5 text-primary-foreground"
         >
-          <option value="todos">Todos los estados</option>
-          <option value="perdido">Perdido</option>
-          <option value="encontrado">Encontrado</option>
-          <option value="en_refugio">En refugio</option>
-        </select>
-        <div className="ml-auto flex gap-1">
-          <button
-            onClick={() => setView("lista")}
-            className={`rounded px-3 py-1 ${view === "lista" ? "bg-neutral-900 text-white" : "border border-neutral-300"}`}
-          >
-            Lista
-          </button>
-          <button
-            onClick={() => setView("mapa")}
-            className={`rounded px-3 py-1 ${view === "mapa" ? "bg-neutral-900 text-white" : "border border-neutral-300"}`}
-          >
-            Mapa
-          </button>
-        </div>
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/15">
+            <HeartHandshake className="h-5 w-5" />
+          </span>
+          <span>
+            <span className="block font-heading text-lg font-bold">He encontrado una mascota</span>
+            <span className="mt-0.5 block text-sm text-primary-foreground/80">
+              Publica la información para encontrar a su familia lo antes posible.
+            </span>
+          </span>
+        </Link>
       </div>
 
+      <h2 className="mb-3 mt-7 font-heading text-lg font-bold">Mascotas reportadas recientemente</h2>
+
       {loading ? (
-        <p className="p-6 text-neutral-500">Cargando reportes…</p>
+        <p className="text-sm text-muted-foreground">Cargando reportes…</p>
       ) : loadError ? (
-        <p className="p-6 text-red-600">
-          No se pudieron cargar los reportes: {loadError}. Revisa que .env.local tenga las credenciales de Supabase.
+        <p className="text-sm text-destructive">
+          No se pudieron cargar los reportes: {loadError}. Revisa que .env.local tenga las credenciales
+          de Supabase.
         </p>
-      ) : view === "mapa" ? (
-        <div className="h-[70vh] min-h-[500px]">
-          <MapView reports={filtered} />
-        </div>
+      ) : reports.length === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          Todavía no hay reportes. Sé la primera persona en publicar uno.
+        </p>
       ) : (
-        <ul className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.length === 0 && (
-            <p className="text-neutral-500">No hay reportes todavía con estos filtros.</p>
-          )}
-          {filtered.map((r) => (
-            <li key={r.id} className="rounded-lg border border-neutral-200 p-3">
-              {r.photo_url && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={r.photo_url}
-                  alt={r.species}
-                  className="mb-2 h-40 w-full rounded object-cover"
-                />
-              )}
-              <p className="font-semibold capitalize">
-                {r.species} · {STATUS_LABEL[r.status]}
-              </p>
-              <p className="text-sm text-neutral-500">{r.city}</p>
-              {r.description && <p className="mt-1 text-sm">{r.description}</p>}
-              <p className="mt-2 text-xs text-neutral-400">
-                {new Date(r.created_at).toLocaleString("es-CO")}
-              </p>
+        <ul className="flex flex-col gap-3">
+          {reports.map((r) => (
+            <li key={r.id}>
+              <PetCard report={r} />
             </li>
           ))}
         </ul>

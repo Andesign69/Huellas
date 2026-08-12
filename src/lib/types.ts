@@ -1,9 +1,13 @@
 export type Species = "perro" | "gato" | "otro";
 export type ReportStatus = "perdido" | "encontrado" | "en_refugio";
+export type Sex = "macho" | "hembra";
 
 export interface PetReport {
   id: string;
+  name: string | null;
   species: Species;
+  breed: string | null;
+  sex: Sex | null;
   status: ReportStatus;
   photo_url: string | null;
   lat: number;

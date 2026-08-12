@@ -11,7 +11,10 @@ create extension if not exists pgcrypto;
 
 create table if not exists public.reports (
   id uuid primary key default gen_random_uuid(),
+  name text,
   species text not null check (species in ('perro', 'gato', 'otro')),
+  breed text,
+  sex text check (sex in ('macho', 'hembra')),
   status text not null check (status in ('perdido', 'encontrado', 'en_refugio')) default 'perdido',
   photo_url text,
   lat double precision not null,
@@ -22,6 +25,12 @@ create table if not exists public.reports (
   resolved boolean not null default false,
   created_at timestamptz not null default now()
 );
+
+-- Migración incremental para proyectos que ya corrieron este script antes
+-- de que existieran name/breed/sex (no-op si la tabla se crea desde cero):
+alter table public.reports add column if not exists name text;
+alter table public.reports add column if not exists breed text;
+alter table public.reports add column if not exists sex text check (sex in ('macho', 'hembra'));
 
 create index if not exists reports_status_idx on public.reports (status);
 create index if not exists reports_city_idx on public.reports (city);
