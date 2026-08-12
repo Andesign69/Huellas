@@ -1,6 +1,7 @@
 "use client";
 
-import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
+import { useEffect } from "react";
+import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -16,6 +17,15 @@ const pinIcon = L.divIcon({
   iconSize: [16, 16],
   iconAnchor: [8, 16],
 });
+
+function Recenter({ center, active }: { center: [number, number]; active: boolean }) {
+  const map = useMap();
+  useEffect(() => {
+    if (active) map.setView(center, map.getZoom());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [center[0], center[1], active]);
+  return null;
+}
 
 function ClickHandler({ onPick }: { onPick: (lat: number, lng: number) => void }) {
   useMapEvents({
@@ -43,6 +53,7 @@ export default function LocationPicker({
       style={{ height: "260px", width: "100%", borderRadius: "8px" }}
     >
       <TileLayer url={tileUrl} attribution="" />
+      <Recenter center={center} active={!value} />
       <ClickHandler onPick={onChange} />
       {value && <Marker position={[value.lat, value.lng]} icon={pinIcon} />}
     </MapContainer>

@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { LocateFixed, Info, MapPin, Camera, Megaphone } from "lucide-react";
 import { supabase, supabaseConfigured } from "@/lib/supabase";
-import { CITY_CENTERS } from "@/lib/cities";
+import { SUGGESTED_CITIES, centerForCity } from "@/lib/cities";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -21,8 +21,6 @@ import PillGroup from "@/components/PillGroup";
 import type { ReportStatus, Sex, Species } from "@/lib/types";
 
 const LocationPicker = dynamic(() => import("@/components/LocationPicker"), { ssr: false });
-
-const CITIES = Object.keys(CITY_CENTERS);
 
 const STATUS_OPTIONS: { value: ReportStatus; label: string }[] = [
   { value: "perdido", label: "Perdido" },
@@ -68,7 +66,7 @@ function ReportarForm() {
   const [species, setSpecies] = useState<Species>("perro");
   const [breed, setBreed] = useState("");
   const [sex, setSex] = useState<Sex | "">("");
-  const [city, setCity] = useState(CITIES[0]);
+  const [city, setCity] = useState("");
   const [description, setDescription] = useState("");
   const [contact, setContact] = useState("");
   const [photo, setPhoto] = useState<File | null>(null);
@@ -102,6 +100,10 @@ function ReportarForm() {
 
     if (!supabaseConfigured) {
       setError("El sitio no tiene Supabase configurado todavía (.env.local). Avísale a quien lo esté armando.");
+      return;
+    }
+    if (!city.trim()) {
+      setError("Dinos en qué ciudad o municipio fue.");
       return;
     }
     if (!pos) {
@@ -208,19 +210,22 @@ function ReportarForm() {
 
         <Section icon={MapPin} title="¿Dónde lo viste por última vez?">
           <div>
-            <Label className="mb-1.5">Ciudad</Label>
-            <Select value={city} onValueChange={(v) => setCity(v ?? CITIES[0])}>
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {CITIES.map((c) => (
-                  <SelectItem key={c} value={c}>
-                    {c}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label htmlFor="city" className="mb-1.5">
+              Ciudad o municipio
+            </Label>
+            <Input
+              id="city"
+              list="city-suggestions"
+              placeholder="Ej. Pereira, Dosquebradas, Armenia…"
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              required
+            />
+            <datalist id="city-suggestions">
+              {SUGGESTED_CITIES.map((c) => (
+                <option key={c} value={c} />
+              ))}
+            </datalist>
           </div>
 
           <Button
@@ -236,7 +241,7 @@ function ReportarForm() {
 
           <div>
             <Label className="mb-1.5">Ajusta el punto exacto en el mapa</Label>
-            <LocationPicker value={pos} onChange={(lat, lng) => setPos({ lat, lng })} center={CITY_CENTERS[city]} />
+            <LocationPicker value={pos} onChange={(lat, lng) => setPos({ lat, lng })} center={centerForCity(city)} />
           </div>
           <p className="text-xs text-muted-foreground">
             Una ubicación precisa ayuda a los voluntarios de la zona a enfocar la búsqueda.

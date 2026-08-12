@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { Search } from "lucide-react";
 import { supabase, supabaseConfigured } from "@/lib/supabase";
-import { CITY_CENTERS } from "@/lib/cities";
 import { Input } from "@/components/ui/input";
 import PillGroup from "@/components/PillGroup";
 import PetCard from "@/components/PetCard";
@@ -12,10 +11,6 @@ import { cn } from "@/lib/utils";
 import type { PetReport } from "@/lib/types";
 
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
-
-const CITIES = Object.keys(CITY_CENTERS);
-
-const CITY_OPTIONS = [{ value: "todas", label: "Todas" }, ...CITIES.map((c) => ({ value: c, label: c }))];
 
 const STATUS_OPTIONS = [
   { value: "todos", label: "Todos" },
@@ -62,6 +57,13 @@ export default function MapaPage() {
         }
       );
   }, []);
+
+  const cityOptions = useMemo(() => {
+    const cities = Array.from(new Set(reports.map((r) => r.city.trim()))).sort((a, b) =>
+      a.localeCompare(b, "es")
+    );
+    return [{ value: "todas", label: "Todas" }, ...cities.map((c) => ({ value: c, label: c }))];
+  }, [reports]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -114,7 +116,7 @@ export default function MapaPage() {
           />
         </div>
 
-        <PillGroup value={cityFilter} onChange={setCityFilter} options={CITY_OPTIONS} size="sm" />
+        <PillGroup value={cityFilter} onChange={setCityFilter} options={cityOptions} size="sm" />
         <PillGroup value={statusFilter} onChange={setStatusFilter} options={STATUS_OPTIONS} size="sm" />
         <PillGroup value={speciesFilter} onChange={setSpeciesFilter} options={SPECIES_OPTIONS} size="sm" />
       </div>
