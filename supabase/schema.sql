@@ -101,7 +101,7 @@ create or replace function public.submit_report(
 ) returns uuid
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 declare
   v_ip text;
