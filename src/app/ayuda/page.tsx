@@ -1,6 +1,8 @@
 import { LifeBuoy, HandHeart, Heart, ShieldAlert } from "lucide-react";
+import CopyButton from "@/components/CopyButton";
 
 const VAKI_URL = "https://vaki.co/vaki/una-garra-por-colombia";
+const BREB_KEY = "@andres5049";
 
 export default function AyudaPage() {
   return (
@@ -52,15 +54,18 @@ export default function AyudaPage() {
         </div>
         <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
           Esta app es 100% gratuita y sin ánimo de lucro — nadie cobra por usarla ni por reportar una
-          mascota. Si quieres apoyar los costos de mantenerla en línea, pronto vas a poder hacerlo
-          aquí. Esto es aparte y no reemplaza la ayuda oficial de arriba.
+          mascota. Si quieres apoyar los costos de mantenerla en línea, puedes hacerlo por Bre-B, a
+          título personal del creador. Esto es aparte y no reemplaza la ayuda oficial de arriba.
         </p>
-        <button
-          disabled
-          className="mt-3 w-full rounded-full border border-border py-2 text-xs font-semibold text-muted-foreground opacity-60"
-        >
-          Enlace en camino
-        </button>
+        <div className="mt-3 flex items-center justify-between gap-2 rounded-xl border border-border bg-card px-3 py-2">
+          <div>
+            <p className="text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground">
+              Llave Bre-B
+            </p>
+            <p className="font-mono text-sm font-semibold">{BREB_KEY}</p>
+          </div>
+          <CopyButton value={BREB_KEY} />
+        </div>
       </section>
 
       <section className="mt-4 mb-6 flex gap-2 rounded-xl bg-muted/60 p-3 text-xs text-muted-foreground">
