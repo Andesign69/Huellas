@@ -79,6 +79,24 @@ export default function AyudaPage() {
           apoyar a la comunidad afectada. No reemplaza a las autoridades, a la Cruz Roja ni a los
           organismos oficiales de emergencia.
         </p>
+        <p className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs">
+          <a
+            href="https://andresmartinez.tech"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-primary underline underline-offset-2"
+          >
+            andresmartinez.tech
+          </a>
+          <a
+            href="https://apexone.tech"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-primary underline underline-offset-2"
+          >
+            apexone.tech
+          </a>
+        </p>
       </section>
 
       <section className="mt-4 mb-6 flex gap-2 rounded-xl bg-muted/60 p-3 text-xs text-muted-foreground">
