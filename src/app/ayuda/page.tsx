@@ -17,17 +17,6 @@ export default function AyudaPage() {
         herramienta.
       </p>
 
-      <Link
-        href="/como-funciona"
-        className="mb-4 flex items-center justify-between gap-2 rounded-2xl border border-border bg-card px-4 py-3"
-      >
-        <span className="flex items-center gap-2">
-          <HelpCircle className="h-4.5 w-4.5 text-primary" />
-          <span className="text-sm font-semibold">Cómo funciona / Preguntas frecuentes</span>
-        </span>
-        <ChevronRight className="h-4 w-4 text-muted-foreground" />
-      </Link>
-
       <section className="rounded-2xl border border-border bg-card p-4 shadow-sm">
         <div className="flex items-center gap-2">
           <Heart className="h-5 w-5 text-primary" />
@@ -47,16 +36,16 @@ export default function AyudaPage() {
         </a>
       </section>
 
-      <section className="mt-4 rounded-xl p-4">
-        <h2 className="text-sm font-bold text-muted-foreground">Sobre esta app</h2>
-        <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
-          Rastrea Huellas fue creada por Andrés Martínez con ayuda de Diego Peña y Apex One para
-          ayudar a reunir mascotas perdidas y encontradas tras el sismo del 10 de agosto de 2026 en
-          Colombia. Es una app gratuita y sin ánimo de lucro, construida por voluntad propia para
-          apoyar a la comunidad afectada. No reemplaza a las autoridades, a la Cruz Roja ni a los
-          organismos oficiales de emergencia.
-        </p>
-      </section>
+      <Link
+        href="/como-funciona"
+        className="mt-4 mb-4 flex items-center justify-between gap-2 rounded-2xl border border-border bg-card px-4 py-3"
+      >
+        <span className="flex items-center gap-2">
+          <HelpCircle className="h-4.5 w-4.5 text-primary" />
+          <span className="text-sm font-semibold">Cómo funciona / Preguntas frecuentes</span>
+        </span>
+        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+      </Link>
 
       <section className="mt-2 rounded-xl border border-dashed border-border p-4">
         <div className="flex items-center gap-2">
@@ -79,6 +68,17 @@ export default function AyudaPage() {
           </div>
           <CopyButton value={BREB_KEY} />
         </div>
+      </section>
+
+      <section className="mt-4 rounded-xl p-4">
+        <h2 className="text-sm font-bold text-muted-foreground">Sobre esta app</h2>
+        <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+          Rastrea Huellas fue creada por Andrés Martínez con ayuda de Diego Peña y Apex One para
+          ayudar a reunir mascotas perdidas y encontradas tras el sismo del 10 de agosto de 2026 en
+          Colombia. Es una app gratuita y sin ánimo de lucro, construida por voluntad propia para
+          apoyar a la comunidad afectada. No reemplaza a las autoridades, a la Cruz Roja ni a los
+          organismos oficiales de emergencia.
+        </p>
       </section>
 
       <section className="mt-4 mb-6 flex gap-2 rounded-xl bg-muted/60 p-3 text-xs text-muted-foreground">
