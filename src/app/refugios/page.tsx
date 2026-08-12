@@ -1,9 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Heart, Phone, MapPin, Globe } from "lucide-react";
+import { Suspense, useEffect, useState } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { Heart, Phone, MapPin, Globe, HeartHandshake, CheckCircle2 } from "lucide-react";
 import { supabase, supabaseConfigured } from "@/lib/supabase";
 import type { Shelter } from "@/lib/types";
+
+function SugeridoBanner() {
+  const searchParams = useSearchParams();
+  if (!searchParams.get("sugerido")) return null;
+  return (
+    <div className="mb-4 flex items-center gap-2 rounded-xl bg-tertiary p-3 text-sm text-tertiary-foreground">
+      <CheckCircle2 className="h-4 w-4 shrink-0" />
+      ¡Gracias! La revisamos y la agregamos pronto a la lista.
+    </div>
+  );
+}
 
 export default function RefugiosPage() {
   const [shelters, setShelters] = useState<Shelter[]>([]);
@@ -40,6 +53,10 @@ export default function RefugiosPage() {
       <p className="mb-4 text-sm text-muted-foreground">
         Organizaciones que están recibiendo o atendiendo mascotas afectadas por el sismo.
       </p>
+
+      <Suspense fallback={null}>
+        <SugeridoBanner />
+      </Suspense>
 
       {loading ? (
         <p className="text-sm text-muted-foreground">Cargando…</p>
@@ -89,6 +106,20 @@ export default function RefugiosPage() {
           ))}
         </ul>
       )}
+
+      <div className="mb-6 flex flex-col items-start gap-2 rounded-2xl border border-dashed border-border p-4">
+        <HeartHandshake className="h-5 w-5 text-primary" />
+        <p className="text-sm font-semibold">¿Conoces una fundación recibiendo animales rescatados?</p>
+        <p className="text-sm text-muted-foreground">
+          Infórmanos para revisarla y agregarla a esta lista.
+        </p>
+        <Link
+          href="/refugios/sugerir"
+          className="mt-1 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+        >
+          Sugerir un refugio
+        </Link>
+      </div>
     </main>
   );
 }

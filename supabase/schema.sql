@@ -83,10 +83,31 @@ create policy "pet_photos_public_select" on storage.objects
   for select using (bucket_id = 'pet-photos');
 
 -- Fundaciones y refugios ya identificados (Fase 3, se completa con ubicación después).
-insert into public.shelters (name, city, notes) values
-  ('Siempre a tu Lado', 'Pereira', 'Fundación de rescate animal'),
-  ('Kenovy', 'Armenia', 'Fundación de rescate animal'),
-  ('Ángeles de la Calle', 'Manizales', 'Fundación de rescate animal'),
-  ('Amigos de Cuatro Patas', 'Villamaría', 'Fundación de rescate animal'),
-  ('Centro de Bienestar Animal de Cali', 'Cali', 'Centro oficial de bienestar animal')
+insert into public.shelters (name, city, notes, website) values
+  ('Siempre a tu Lado', 'Pereira', 'Fundación de rescate animal', 'https://www.instagram.com/siempreatulado_albergue/'),
+  ('Kenovy', 'Armenia', 'Fundación de rescate animal', 'https://www.instagram.com/fundacionkenovycolombia'),
+  ('Ángeles de la Calle', 'Manizales', 'Fundación de rescate animal', 'https://www.instagram.com/angelesdelacallemanizales')
 on conflict do nothing;
+
+insert into public.shelters (name, city, notes, address) values
+  ('Centro de Bienestar Animal de Cali', 'Cali', 'Centro oficial de bienestar animal', 'Cra. 56 #7oeste-445, Guadalupe, Cali, Valle del Cauca')
+on conflict do nothing;
+
+-- Solicitudes ciudadanas para agregar un nuevo refugio a la lista (Fase 3).
+-- Nadie puede leerlas por la API pública; llegan por correo (ver /refugios/sugerir)
+-- y quien administre el proyecto las revisa antes de agregarlas a "shelters" a mano.
+create table if not exists public.shelter_suggestions (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  city text not null,
+  contact text not null,
+  website text,
+  notes text,
+  created_at timestamptz not null default now()
+);
+
+alter table public.shelter_suggestions enable row level security;
+grant insert on public.shelter_suggestions to anon, authenticated;
+
+create policy "shelter_suggestions_public_insert" on public.shelter_suggestions
+  for insert with check (true);
