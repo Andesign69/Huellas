@@ -7,6 +7,7 @@ import { LocateFixed, Info, MapPin, Camera, Megaphone } from "lucide-react";
 import { supabase, supabaseConfigured } from "@/lib/supabase";
 import { SUGGESTED_CITIES, centerForCity } from "@/lib/cities";
 import { saveResolveToken } from "@/lib/resolveTokens";
+import { compressImage } from "@/lib/compressImage";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -69,6 +70,7 @@ function ReportarForm() {
   const [description, setDescription] = useState("");
   const [contact, setContact] = useState("");
   const [photo, setPhoto] = useState<File | null>(null);
+  const [compressingPhoto, setCompressingPhoto] = useState(false);
   const [pos, setPos] = useState<{ lat: number; lng: number } | null>(null);
   const [gpsFocus, setGpsFocus] = useState<[number, number] | null>(null);
   const [locating, setLocating] = useState(false);
@@ -292,14 +294,30 @@ function ReportarForm() {
             <label className="flex cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-border bg-muted/40 py-6 text-center">
               <Camera className="h-6 w-6 text-muted-foreground" />
               <span className="text-sm font-medium">
-                {photo ? photo.name : "Toca para subir una imagen"}
+                {compressingPhoto
+                  ? "Optimizando imagen…"
+                  : photo
+                    ? `${photo.name} (${(photo.size / 1024 / 1024).toFixed(1)} MB)`
+                    : "Toca para subir una imagen"}
               </span>
               <span className="text-xs text-muted-foreground">Formatos recomendados: JPG, PNG</span>
               <input
                 type="file"
                 accept="image/*"
                 className="hidden"
-                onChange={(e) => setPhoto(e.target.files?.[0] ?? null)}
+                onChange={async (e) => {
+                  const file = e.target.files?.[0] ?? null;
+                  if (!file) {
+                    setPhoto(null);
+                    return;
+                  }
+                  setCompressingPhoto(true);
+                  try {
+                    setPhoto(await compressImage(file));
+                  } finally {
+                    setCompressingPhoto(false);
+                  }
+                }}
               />
             </label>
           </div>
@@ -337,7 +355,7 @@ function ReportarForm() {
           Al publicar, tu reporte será visible para cualquiera que visite Rastrea Huellas.
         </p>
 
-        <Button type="submit" disabled={submitting} className="w-full py-6 text-base">
+        <Button type="submit" disabled={submitting || compressingPhoto} className="w-full py-6 text-base">
           <Megaphone className="h-4 w-4" />
           {submitting ? "Publicando…" : "Publicar reporte"}
         </Button>
