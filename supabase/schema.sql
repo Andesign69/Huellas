@@ -1,5 +1,11 @@
 -- Huellas: esquema de datos.
 -- Correr en el SQL Editor del proyecto de Supabase (Database > SQL Editor).
+--
+-- Asume que "Automatically expose new tables" está DESACTIVADO en
+-- Project Settings > Data API (recomendación de Supabase). Por eso este
+-- script otorga permisos a las tablas explícitamente en vez de depender
+-- de ese toggle; el acceso real a filas lo siguen controlando las
+-- políticas de RLS de abajo.
 
 create extension if not exists pgcrypto;
 
@@ -22,6 +28,7 @@ create index if not exists reports_city_idx on public.reports (city);
 create index if not exists reports_created_at_idx on public.reports (created_at desc);
 
 alter table public.reports enable row level security;
+grant select, insert on public.reports to anon, authenticated;
 
 create policy "reports_public_select" on public.reports
   for select using (true);
@@ -44,6 +51,7 @@ create table if not exists public.shelters (
 );
 
 alter table public.shelters enable row level security;
+grant select on public.shelters to anon, authenticated;
 
 create policy "shelters_public_select" on public.shelters
   for select using (true);
