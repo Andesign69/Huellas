@@ -1,5 +1,7 @@
 import { LifeBuoy, HandHeart, Heart, ShieldAlert } from "lucide-react";
 
+const VAKI_URL = "https://vaki.co/vaki/una-garra-por-colombia";
+
 export default function AyudaPage() {
   return (
     <main className="flex flex-1 flex-col px-4 pt-5">
@@ -28,19 +30,20 @@ export default function AyudaPage() {
       <section className="mt-4 rounded-2xl border border-border bg-tertiary p-4">
         <div className="flex items-center gap-2">
           <Heart className="h-5 w-5 text-tertiary-foreground" />
-          <h2 className="font-heading font-bold text-tertiary-foreground">
-            Dona a la ayuda oficial del sismo
-          </h2>
+          <h2 className="font-heading font-bold text-tertiary-foreground">Una Garra por Colombia</h2>
         </div>
         <p className="mt-2 text-sm leading-relaxed text-tertiary-foreground/80">
-          Vaqui oficial para la emergencia — próximamente el enlace aquí.
+          Vaki oficial para comida, medicamentos, insumos veterinarios y reconstrucción de refugios
+          para los animales afectados por el sismo.
         </p>
-        <button
-          disabled
-          className="mt-3 w-full rounded-full bg-card py-2.5 text-sm font-semibold text-muted-foreground opacity-60"
+        <a
+          href={VAKI_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-3 flex w-full items-center justify-center rounded-full bg-card py-2.5 text-sm font-semibold text-primary shadow-sm"
         >
-          Enlace en camino
-        </button>
+          Donar en Vaki
+        </a>
       </section>
 
       <section className="mt-4 rounded-xl border border-dashed border-border p-4">
