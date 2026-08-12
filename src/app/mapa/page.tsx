@@ -2,15 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
+import { Search } from "lucide-react";
 import { supabase, supabaseConfigured } from "@/lib/supabase";
 import { CITY_CENTERS } from "@/lib/cities";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import PillGroup from "@/components/PillGroup";
 import PetCard from "@/components/PetCard";
 import { cn } from "@/lib/utils";
 import type { PetReport } from "@/lib/types";
@@ -19,14 +15,32 @@ const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
 
 const CITIES = Object.keys(CITY_CENTERS);
 
+const CITY_OPTIONS = [{ value: "todas", label: "Todas" }, ...CITIES.map((c) => ({ value: c, label: c }))];
+
+const STATUS_OPTIONS = [
+  { value: "todos", label: "Todos" },
+  { value: "perdido", label: "Perdido" },
+  { value: "encontrado", label: "Encontrado" },
+  { value: "en_refugio", label: "En refugio" },
+];
+
+const SPECIES_OPTIONS = [
+  { value: "todas", label: "Todas" },
+  { value: "perro", label: "Perro" },
+  { value: "gato", label: "Gato" },
+  { value: "otro", label: "Otro" },
+];
+
 export default function MapaPage() {
   const [reports, setReports] = useState<PetReport[]>([]);
   const [loading, setLoading] = useState(supabaseConfigured);
   const [loadError, setLoadError] = useState<string | null>(
     supabaseConfigured ? null : "Falta configurar Supabase (.env.local)."
   );
+  const [query, setQuery] = useState("");
   const [cityFilter, setCityFilter] = useState("todas");
   const [statusFilter, setStatusFilter] = useState("todos");
+  const [speciesFilter, setSpeciesFilter] = useState("todas");
   const [view, setView] = useState<"lista" | "mapa">("lista");
 
   useEffect(() => {
@@ -34,6 +48,7 @@ export default function MapaPage() {
     supabase
       .from("reports")
       .select("*")
+      .eq("resolved", false)
       .order("created_at", { ascending: false })
       .then(
         ({ data, error }) => {
@@ -49,12 +64,18 @@ export default function MapaPage() {
   }, []);
 
   const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
     return reports.filter((r) => {
       if (cityFilter !== "todas" && r.city !== cityFilter) return false;
       if (statusFilter !== "todos" && r.status !== statusFilter) return false;
+      if (speciesFilter !== "todas" && r.species !== speciesFilter) return false;
+      if (q) {
+        const haystack = `${r.name ?? ""} ${r.breed ?? ""} ${r.description ?? ""}`.toLowerCase();
+        if (!haystack.includes(q)) return false;
+      }
       return true;
     });
-  }, [reports, cityFilter, statusFilter]);
+  }, [reports, cityFilter, statusFilter, speciesFilter, query]);
 
   return (
     <main className="flex flex-1 flex-col">
@@ -82,31 +103,20 @@ export default function MapaPage() {
         </div>
       </header>
 
-      <div className="flex gap-2 px-4 pb-3">
-        <Select value={cityFilter} onValueChange={(v) => setCityFilter(v ?? "todas")}>
-          <SelectTrigger className="flex-1 bg-card">
-            <SelectValue placeholder="Ciudad" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todas">Todas las ciudades</SelectItem>
-            {CITIES.map((c) => (
-              <SelectItem key={c} value={c}>
-                {c}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v ?? "todos")}>
-          <SelectTrigger className="flex-1 bg-card">
-            <SelectValue placeholder="Estado" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todos">Todos los estados</SelectItem>
-            <SelectItem value="perdido">Perdido</SelectItem>
-            <SelectItem value="encontrado">Encontrado</SelectItem>
-            <SelectItem value="en_refugio">En refugio</SelectItem>
-          </SelectContent>
-        </Select>
+      <div className="flex flex-col gap-3 px-4 pb-3">
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Buscar por nombre, raza o descripción…"
+            className="bg-card pl-9"
+          />
+        </div>
+
+        <PillGroup value={cityFilter} onChange={setCityFilter} options={CITY_OPTIONS} size="sm" />
+        <PillGroup value={statusFilter} onChange={setStatusFilter} options={STATUS_OPTIONS} size="sm" />
+        <PillGroup value={speciesFilter} onChange={setSpeciesFilter} options={SPECIES_OPTIONS} size="sm" />
       </div>
 
       {loading ? (
@@ -120,7 +130,7 @@ export default function MapaPage() {
           <MapView reports={filtered} />
         </div>
       ) : (
-        <ul className="flex flex-col gap-3 px-4 pb-6">
+        <ul className="grid grid-cols-2 gap-3 px-4 pb-6">
           {filtered.map((r) => (
             <li key={r.id}>
               <PetCard report={r} />

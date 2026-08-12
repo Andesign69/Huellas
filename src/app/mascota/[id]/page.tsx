@@ -3,9 +3,10 @@
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { ArrowLeft, PawPrint, MessageCircle } from "lucide-react";
+import { ArrowLeft, PawPrint, MessageCircle, CheckCircle2 } from "lucide-react";
 import { supabase, supabaseConfigured } from "@/lib/supabase";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { timeAgo } from "@/lib/time";
 import type { PetReport } from "@/lib/types";
 
@@ -35,6 +36,26 @@ export default function MascotaDetailPage({ params }: { params: Promise<{ id: st
   const [error, setError] = useState<string | null>(
     supabaseConfigured ? null : "Falta configurar Supabase (.env.local)."
   );
+  const [confirmingResolve, setConfirmingResolve] = useState(false);
+  const [resolving, setResolving] = useState(false);
+  const [resolveError, setResolveError] = useState<string | null>(null);
+
+  async function handleResolve() {
+    if (!report) return;
+    setResolving(true);
+    setResolveError(null);
+    const { error: updateError } = await supabase
+      .from("reports")
+      .update({ resolved: true })
+      .eq("id", report.id);
+    setResolving(false);
+    if (updateError) {
+      setResolveError("No se pudo actualizar: " + updateError.message);
+      return;
+    }
+    setReport({ ...report, resolved: true });
+    setConfirmingResolve(false);
+  }
 
   useEffect(() => {
     if (!supabaseConfigured) return;
@@ -125,22 +146,60 @@ export default function MascotaDetailPage({ params }: { params: Promise<{ id: st
             <MapView reports={[report]} />
           </div>
 
-          <div className="sticky bottom-20 mx-4 mt-4 mb-6">
-            <a
-              href={whatsappLink(
-                report.contact,
-                report.status === "perdido"
-                  ? `Hola, vi tu reporte de ${report.name?.trim() || SPECIES_LABEL[report.species]} en Refugio Huellas.`
-                  : `Hola, creo que ${report.name?.trim() || "esta mascota"} que reportaste encontrada en Refugio Huellas es mía.`
+          {report.resolved ? (
+            <div className="mx-4 mt-4 mb-6 flex items-center gap-2 rounded-2xl bg-tertiary p-4 text-tertiary-foreground">
+              <CheckCircle2 className="h-5 w-5 shrink-0" />
+              <p className="text-sm font-semibold">
+                Este reporte ya se marcó como resuelto — la mascota está en casa.
+              </p>
+            </div>
+          ) : (
+            <div className="sticky bottom-20 mx-4 mt-4 mb-6 flex flex-col gap-2">
+              <a
+                href={whatsappLink(
+                  report.contact,
+                  report.status === "perdido"
+                    ? `Hola, vi tu reporte de ${report.name?.trim() || SPECIES_LABEL[report.species]} en Refugio Huellas.`
+                    : `Hola, creo que ${report.name?.trim() || "esta mascota"} que reportaste encontrada en Refugio Huellas es mía.`
+                )}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex w-full items-center justify-center gap-2 rounded-full bg-secondary py-3.5 font-semibold text-secondary-foreground shadow-sm"
+              >
+                <MessageCircle className="h-5 w-5" />
+                {report.status === "perdido" ? "Contactar" : "Soy el dueño"}
+              </a>
+
+              {confirmingResolve ? (
+                <div className="flex flex-col gap-2 rounded-2xl border border-border bg-card p-3">
+                  <p className="text-center text-sm">¿Ya está en casa? Esto lo quita de los reportes.</p>
+                  {resolveError && <p className="text-center text-xs text-destructive">{resolveError}</p>}
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => setConfirmingResolve(false)}
+                      disabled={resolving}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button type="button" className="flex-1" onClick={handleResolve} disabled={resolving}>
+                      {resolving ? "Guardando…" : "Sí, marcar resuelto"}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setConfirmingResolve(true)}
+                  className="py-1.5 text-center text-xs font-medium text-muted-foreground underline underline-offset-2"
+                >
+                  Marcar como resuelto
+                </button>
               )}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex w-full items-center justify-center gap-2 rounded-full bg-secondary py-3.5 font-semibold text-secondary-foreground shadow-sm"
-            >
-              <MessageCircle className="h-5 w-5" />
-              {report.status === "perdido" ? "Contactar" : "Soy el dueño"}
-            </a>
-          </div>
+            </div>
+          )}
         </>
       ) : null}
     </main>

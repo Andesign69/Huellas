@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
+import PillGroup from "@/components/PillGroup";
 import type { ReportStatus, Sex, Species } from "@/lib/types";
 
 const LocationPicker = dynamic(() => import("@/components/LocationPicker"), { ssr: false });
@@ -35,36 +35,6 @@ const SPECIES_OPTIONS: { value: Species; label: string }[] = [
   { value: "gato", label: "Gato" },
   { value: "otro", label: "Otro" },
 ];
-
-function PillGroup<T extends string>({
-  value,
-  onChange,
-  options,
-}: {
-  value: T;
-  onChange: (v: T) => void;
-  options: { value: T; label: string }[];
-}) {
-  return (
-    <div className="flex flex-wrap gap-2">
-      {options.map((opt) => (
-        <button
-          key={opt.value}
-          type="button"
-          onClick={() => onChange(opt.value)}
-          className={cn(
-            "rounded-full px-4 py-2 text-sm font-medium transition-colors",
-            value === opt.value
-              ? "bg-secondary text-secondary-foreground"
-              : "bg-muted text-muted-foreground"
-          )}
-        >
-          {opt.label}
-        </button>
-      ))}
-    </div>
-  );
-}
 
 function Section({
   icon: Icon,

@@ -45,8 +45,17 @@ create policy "reports_public_select" on public.reports
 create policy "reports_public_insert" on public.reports
   for insert with check (true);
 
--- Fase 2 (moderación) agregará una policy de update/delete más estricta;
--- por ahora cualquiera puede publicar, que es el punto de un reporte ciudadano abierto.
+-- Cualquiera puede marcar un reporte como resuelto (mascota reunida con su
+-- familia), pero el grant column-level solo permite tocar esa columna: no se
+-- puede reescribir el contacto, la foto ni la descripción de otra persona.
+grant update (resolved) on public.reports to anon, authenticated;
+
+create policy "reports_public_resolve" on public.reports
+  for update using (true) with check (true);
+
+-- Fase 2 (moderación) agregará controles más estrictos (rate limiting,
+-- anti-spam); por ahora cualquiera puede publicar y resolver, que es el
+-- punto de un reporte ciudadano abierto.
 
 create table if not exists public.shelters (
   id uuid primary key default gen_random_uuid(),

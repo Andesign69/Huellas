@@ -21,6 +21,7 @@ export default function HomePage() {
     supabase
       .from("reports")
       .select("*")
+      .eq("resolved", false)
       .order("created_at", { ascending: false })
       .limit(PREVIEW_COUNT)
       .then(
@@ -95,7 +96,7 @@ export default function HomePage() {
           Todavía no hay reportes. Sé la primera persona en publicar uno.
         </p>
       ) : (
-        <ul className="flex flex-col gap-3">
+        <ul className="grid grid-cols-2 gap-3">
           {reports.map((r) => (
             <li key={r.id}>
               <PetCard report={r} />
