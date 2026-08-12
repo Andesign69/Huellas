@@ -1,4 +1,5 @@
-import { LifeBuoy, HandHeart, Heart, ShieldAlert } from "lucide-react";
+import Link from "next/link";
+import { LifeBuoy, HandHeart, Heart, ShieldAlert, HelpCircle, ChevronRight } from "lucide-react";
 import CopyButton from "@/components/CopyButton";
 
 const VAKI_URL = "https://vaki.co/vaki/una-garra-por-colombia";
@@ -15,6 +16,17 @@ export default function AyudaPage() {
         Sobre Rastrea Huellas, y cómo apoyar la respuesta al sismo o el mantenimiento de esta
         herramienta.
       </p>
+
+      <Link
+        href="/como-funciona"
+        className="mb-4 flex items-center justify-between gap-2 rounded-2xl border border-border bg-card px-4 py-3"
+      >
+        <span className="flex items-center gap-2">
+          <HelpCircle className="h-4.5 w-4.5 text-primary" />
+          <span className="text-sm font-semibold">Cómo funciona / Preguntas frecuentes</span>
+        </span>
+        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+      </Link>
 
       <section className="rounded-2xl border border-border bg-card p-4 shadow-sm">
         <div className="flex items-center gap-2">
