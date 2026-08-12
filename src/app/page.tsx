@@ -117,7 +117,7 @@ export default function HomePage() {
           No se pudieron cargar los reportes: {loadError}. Revisa que .env.local tenga las credenciales de Supabase.
         </p>
       ) : view === "mapa" ? (
-        <div className="min-h-[500px] flex-1">
+        <div className="h-[70vh] min-h-[500px]">
           <MapView reports={filtered} />
         </div>
       ) : (
