@@ -3,7 +3,7 @@
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { ArrowLeft, PawPrint, MessageCircle, CheckCircle2, Flag } from "lucide-react";
+import { ArrowLeft, PawPrint, MessageCircle, CheckCircle2, Flag, Share2 } from "lucide-react";
 import { supabase, supabaseConfigured } from "@/lib/supabase";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -47,6 +47,38 @@ export default function MascotaDetailPage({ params }: { params: Promise<{ id: st
   const [flagError, setFlagError] = useState<string | null>(null);
   const [flagSubmitted, setFlagSubmitted] = useState(false);
   const [resolveToken] = useState<string | null>(() => getResolveToken(id));
+  const [shared, setShared] = useState(false);
+
+  async function handleShare() {
+    if (!report) return;
+    const displayName = report.name?.trim() || SPECIES_LABEL[report.species];
+    const statusText =
+      report.status === "perdido" ? "Se busca" : report.status === "encontrado" ? "Se encontró" : "En refugio";
+    const text = `${statusText}: ${displayName} en ${report.city}. Ayúdanos a difundir en Rastrea Huellas.`;
+    const url = window.location.href;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: "Rastrea Huellas", text, url });
+      } catch {
+        // el usuario canceló el share, no hay nada que hacer
+      }
+      return;
+    }
+
+    if (navigator.clipboard) {
+      try {
+        await navigator.clipboard.writeText(`${text} ${url}`);
+        setShared(true);
+        setTimeout(() => setShared(false), 1800);
+        return;
+      } catch {
+        // sigue al fallback de abrir WhatsApp
+      }
+    }
+
+    window.open(`https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}`, "_blank", "noopener,noreferrer");
+  }
 
   async function handleFlag() {
     if (!report) return;
@@ -104,11 +136,23 @@ export default function MascotaDetailPage({ params }: { params: Promise<{ id: st
 
   return (
     <main className="flex flex-1 flex-col">
-      <header className="flex items-center gap-3 px-4 pb-2 pt-5">
-        <Link href="/" className="text-foreground">
-          <ArrowLeft className="h-5 w-5" />
-        </Link>
-        <span className="font-heading text-lg font-bold">Rastrea Huellas</span>
+      <header className="flex items-center justify-between gap-3 px-4 pb-2 pt-5">
+        <div className="flex items-center gap-3">
+          <Link href="/" className="text-foreground">
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+          <span className="font-heading text-lg font-bold">Rastrea Huellas</span>
+        </div>
+        {report && (
+          <button
+            type="button"
+            onClick={handleShare}
+            className="flex items-center gap-1.5 rounded-full bg-muted px-3 py-1.5 text-xs font-semibold text-foreground"
+          >
+            <Share2 className="h-3.5 w-3.5" />
+            {shared ? "Copiado" : "Compartir"}
+          </button>
+        )}
       </header>
 
       {loading ? (
