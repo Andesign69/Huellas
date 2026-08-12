@@ -51,6 +51,7 @@ create policy "reports_public_select" on public.reports
 -- puede reescribir el contacto, la foto ni la descripción de otra persona.
 grant update (resolved) on public.reports to anon, authenticated;
 
+drop policy if exists "reports_public_resolve" on public.reports;
 create policy "reports_public_resolve" on public.reports
   for update using (true) with check (true);
 
