@@ -29,5 +29,6 @@ export interface Shelter {
   website: string | null;
   lat: number | null;
   lng: number | null;
+  is_exact_location: boolean;
   notes: string | null;
 }

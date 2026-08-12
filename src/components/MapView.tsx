@@ -3,7 +3,7 @@
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import type { PetReport } from "@/lib/types";
+import type { PetReport, Shelter } from "@/lib/types";
 import { DEFAULT_CENTER } from "@/lib/cities";
 
 const MAPTILER_KEY = process.env.NEXT_PUBLIC_MAPTILER_KEY;
@@ -32,7 +32,14 @@ function pinIcon(status: string) {
   });
 }
 
-export default function MapView({ reports }: { reports: PetReport[] }) {
+const shelterIcon = L.divIcon({
+  className: "",
+  html: `<span style="display:flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:#C9591F;border:2px solid white;box-shadow:0 0 0 1px rgba(0,0,0,.25)"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/></svg></span>`,
+  iconSize: [22, 22],
+  iconAnchor: [11, 11],
+});
+
+export default function MapView({ reports, shelters = [] }: { reports: PetReport[]; shelters?: Shelter[] }) {
   return (
     <MapContainer
       center={DEFAULT_CENTER}
@@ -56,6 +63,23 @@ export default function MapView({ reports }: { reports: PetReport[] }) {
           </Popup>
         </Marker>
       ))}
+      {shelters
+        .filter((s) => s.lat != null && s.lng != null)
+        .map((s) => (
+          <Marker key={s.id} position={[s.lat as number, s.lng as number]} icon={shelterIcon}>
+            <Popup>
+              <strong>{s.name}</strong>
+              <br />
+              {s.city}
+              {!s.is_exact_location && (
+                <>
+                  <br />
+                  <em>Ubicación aproximada</em>
+                </>
+              )}
+            </Popup>
+          </Marker>
+        ))}
     </MapContainer>
   );
 }

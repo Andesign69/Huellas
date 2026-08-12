@@ -228,12 +228,14 @@ create table if not exists public.shelters (
   website text,
   lat double precision,
   lng double precision,
+  is_exact_location boolean not null default false,
   notes text
 );
 
 -- Migración incremental para proyectos que ya corrieron este script:
 alter table public.shelters add column if not exists address text;
 alter table public.shelters add column if not exists website text;
+alter table public.shelters add column if not exists is_exact_location boolean not null default false;
 
 alter table public.shelters enable row level security;
 grant select on public.shelters to anon, authenticated;
@@ -262,6 +264,20 @@ on conflict do nothing;
 insert into public.shelters (name, city, notes, address) values
   ('Centro de Bienestar Animal de Cali', 'Cali', 'Centro oficial de bienestar animal', 'Cra. 56 #7oeste-445, Guadalupe, Cali, Valle del Cauca')
 on conflict do nothing;
+
+-- Coordenadas para pinear los refugios en el mapa. Centro de Bienestar
+-- Animal de Cali tiene dirección real (geocodificada con OpenStreetMap
+-- Nominatim); los demás solo tienen ciudad, así que se ubican en el
+-- centro de su ciudad y quedan marcados como aproximados (is_exact_location
+-- = false) para no sugerir que ese es el punto exacto.
+update public.shelters set lat = 3.4100192, lng = -76.5621338, is_exact_location = true
+  where name = 'Centro de Bienestar Animal de Cali';
+update public.shelters set lat = 4.8133, lng = -75.6961, is_exact_location = false
+  where name = 'Siempre a tu Lado';
+update public.shelters set lat = 4.5339, lng = -75.6811, is_exact_location = false
+  where name = 'Kenovy';
+update public.shelters set lat = 5.0689, lng = -75.5174, is_exact_location = false
+  where name = 'Ángeles de la Calle';
 
 -- Solicitudes ciudadanas para agregar un nuevo refugio a la lista (Fase 3).
 -- Nadie puede leerlas por la API pública; llegan por correo (ver /refugios/sugerir)

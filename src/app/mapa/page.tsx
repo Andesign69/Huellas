@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import PillGroup from "@/components/PillGroup";
 import PetCard from "@/components/PetCard";
 import { cn } from "@/lib/utils";
-import type { PetReport } from "@/lib/types";
+import type { PetReport, Shelter } from "@/lib/types";
 
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
 
@@ -37,6 +37,7 @@ export default function MapaPage() {
   const [statusFilter, setStatusFilter] = useState("todos");
   const [speciesFilter, setSpeciesFilter] = useState("todas");
   const [view, setView] = useState<"lista" | "mapa">("lista");
+  const [shelters, setShelters] = useState<Shelter[]>([]);
 
   useEffect(() => {
     if (!supabaseConfigured) return;
@@ -56,6 +57,10 @@ export default function MapaPage() {
           setLoading(false);
         }
       );
+    supabase
+      .from("shelters")
+      .select("*")
+      .then(({ data }) => setShelters((data ?? []) as Shelter[]));
   }, []);
 
   const cityOptions = useMemo(() => {
@@ -138,12 +143,24 @@ export default function MapaPage() {
         <p className="px-4 text-sm text-muted-foreground">Cargando…</p>
       ) : loadError ? (
         <p className="px-4 text-sm text-destructive">{loadError}</p>
+      ) : view === "mapa" ? (
+        <>
+          <div className="flex items-center gap-4 px-4 pb-2 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full border border-white bg-destructive" />
+              Reportes
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full border border-white bg-secondary" />
+              Refugios
+            </span>
+          </div>
+          <div className="h-[65vh] min-h-[420px]">
+            <MapView reports={filtered} shelters={shelters} />
+          </div>
+        </>
       ) : filtered.length === 0 ? (
         <p className="px-4 text-sm text-muted-foreground">No hay reportes con estos filtros.</p>
-      ) : view === "mapa" ? (
-        <div className="h-[65vh] min-h-[420px]">
-          <MapView reports={filtered} />
-        </div>
       ) : (
         <ul className="grid grid-cols-2 gap-3 px-4 pb-6">
           {filtered.map((r) => (
