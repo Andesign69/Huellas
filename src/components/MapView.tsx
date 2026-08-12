@@ -34,7 +34,12 @@ function pinIcon(status: string) {
 
 export default function MapView({ reports }: { reports: PetReport[] }) {
   return (
-    <MapContainer center={DEFAULT_CENTER} zoom={8} style={{ height: "100%", width: "100%" }}>
+    <MapContainer
+      center={DEFAULT_CENTER}
+      zoom={8}
+      className="isolate"
+      style={{ height: "100%", width: "100%" }}
+    >
       <TileLayer url={tileUrl} attribution={tileAttribution} />
       {reports.map((r) => (
         <Marker key={r.id} position={[r.lat, r.lng]} icon={pinIcon(r.status)}>

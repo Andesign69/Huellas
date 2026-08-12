@@ -24,7 +24,9 @@ export interface Shelter {
   name: string;
   city: string;
   zone: string | null;
+  address: string | null;
   contact: string | null;
+  website: string | null;
   lat: number | null;
   lng: number | null;
   notes: string | null;

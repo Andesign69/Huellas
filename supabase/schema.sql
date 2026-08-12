@@ -53,11 +53,17 @@ create table if not exists public.shelters (
   name text not null,
   city text not null,
   zone text,
+  address text,
   contact text,
+  website text,
   lat double precision,
   lng double precision,
   notes text
 );
+
+-- Migración incremental para proyectos que ya corrieron este script:
+alter table public.shelters add column if not exists address text;
+alter table public.shelters add column if not exists website text;
 
 alter table public.shelters enable row level security;
 grant select on public.shelters to anon, authenticated;

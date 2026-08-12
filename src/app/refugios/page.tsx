@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Heart, Phone } from "lucide-react";
+import { Heart, Phone, MapPin, Globe } from "lucide-react";
 import { supabase, supabaseConfigured } from "@/lib/supabase";
 import type { Shelter } from "@/lib/types";
 
@@ -57,15 +57,34 @@ export default function RefugiosPage() {
                 {s.zone ? ` · ${s.zone}` : ""}
               </p>
               {s.notes && <p className="mt-1 text-sm">{s.notes}</p>}
-              {s.contact && (
-                <a
-                  href={`tel:${s.contact.replace(/[^\d+]/g, "")}`}
-                  className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-primary"
-                >
-                  <Phone className="h-3.5 w-3.5" />
-                  {s.contact}
-                </a>
+              {s.address && (
+                <p className="mt-2 flex items-start gap-1.5 text-sm text-muted-foreground">
+                  <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  {s.address}
+                </p>
               )}
+              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+                {s.contact && (
+                  <a
+                    href={`tel:${s.contact.replace(/[^\d+]/g, "")}`}
+                    className="inline-flex items-center gap-1.5 text-sm font-medium text-primary"
+                  >
+                    <Phone className="h-3.5 w-3.5" />
+                    {s.contact}
+                  </a>
+                )}
+                {s.website && (
+                  <a
+                    href={s.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-sm font-medium text-primary"
+                  >
+                    <Globe className="h-3.5 w-3.5" />
+                    Sitio / Instagram
+                  </a>
+                )}
+              </div>
             </li>
           ))}
         </ul>

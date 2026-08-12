@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { PawPrint, Search, HeartHandshake } from "lucide-react";
+import { PawPrint, Search, HeartHandshake, ArrowRight } from "lucide-react";
 import { supabase, supabaseConfigured } from "@/lib/supabase";
 import PetCard from "@/components/PetCard";
 import type { PetReport } from "@/lib/types";
+
+const PREVIEW_COUNT = 6;
 
 export default function HomePage() {
   const [reports, setReports] = useState<PetReport[]>([]);
@@ -20,7 +22,7 @@ export default function HomePage() {
       .from("reports")
       .select("*")
       .order("created_at", { ascending: false })
-      .limit(20)
+      .limit(PREVIEW_COUNT)
       .then(
         ({ data, error }) => {
           if (error) setLoadError(error.message);
@@ -49,41 +51,37 @@ export default function HomePage() {
         sismo y ayuda a que vuelvan a casa a salvo.
       </p>
 
-      <div className="mt-5 flex flex-col gap-3">
+      <div className="mt-5 grid grid-cols-2 gap-3">
         <Link
           href="/reportar?status=perdido"
-          className="flex flex-col gap-3 rounded-2xl border border-border bg-tertiary p-5"
+          className="flex flex-col items-start gap-2 rounded-2xl border border-border bg-tertiary p-4"
         >
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-card text-primary">
-            <Search className="h-5 w-5" />
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-card text-primary">
+            <Search className="h-4.5 w-4.5" />
           </span>
-          <span>
-            <span className="block font-heading text-lg font-bold text-tertiary-foreground">
-              He perdido una mascota
-            </span>
-            <span className="mt-0.5 block text-sm text-tertiary-foreground/70">
-              Crea un reporte detallado para que la comunidad te ayude a buscarla.
-            </span>
+          <span className="font-heading text-base font-bold leading-tight text-tertiary-foreground">
+            Perdí una mascota
           </span>
         </Link>
 
         <Link
           href="/reportar?status=encontrado"
-          className="flex flex-col gap-3 rounded-2xl bg-primary p-5 text-primary-foreground"
+          className="flex flex-col items-start gap-2 rounded-2xl bg-primary p-4 text-primary-foreground"
         >
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/15">
-            <HeartHandshake className="h-5 w-5" />
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15">
+            <HeartHandshake className="h-4.5 w-4.5" />
           </span>
-          <span>
-            <span className="block font-heading text-lg font-bold">He encontrado una mascota</span>
-            <span className="mt-0.5 block text-sm text-primary-foreground/80">
-              Publica la información para encontrar a su familia lo antes posible.
-            </span>
-          </span>
+          <span className="font-heading text-base font-bold leading-tight">Encontré una mascota</span>
         </Link>
       </div>
 
-      <h2 className="mb-3 mt-7 font-heading text-lg font-bold">Mascotas reportadas recientemente</h2>
+      <div className="mb-3 mt-7 flex items-center justify-between">
+        <h2 className="font-heading text-lg font-bold">Reportados recientemente</h2>
+        <Link href="/mapa" className="flex items-center gap-0.5 text-sm font-medium text-primary">
+          Ver todos
+          <ArrowRight className="h-3.5 w-3.5" />
+        </Link>
+      </div>
 
       {loading ? (
         <p className="text-sm text-muted-foreground">Cargando reportes…</p>

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, PlusCircle, Map, Heart } from "lucide-react";
+import { Home, PlusCircle, Map, Heart, LifeBuoy } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const ITEMS = [
@@ -10,13 +10,14 @@ const ITEMS = [
   { href: "/reportar", label: "Reportar", icon: PlusCircle },
   { href: "/mapa", label: "Mapa", icon: Map },
   { href: "/refugios", label: "Refugios", icon: Heart },
+  { href: "/ayuda", label: "Ayuda", icon: LifeBuoy },
 ];
 
 export default function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-20 border-t border-border bg-card">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card">
       <div className="mx-auto flex max-w-md items-stretch justify-between px-2">
         {ITEMS.map(({ href, label, icon: Icon }) => {
           const active = href === "/" ? pathname === "/" : pathname.startsWith(href);

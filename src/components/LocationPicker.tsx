@@ -36,7 +36,12 @@ export default function LocationPicker({
   center: [number, number];
 }) {
   return (
-    <MapContainer center={center} zoom={12} style={{ height: "260px", width: "100%", borderRadius: "8px" }}>
+    <MapContainer
+      center={center}
+      zoom={12}
+      className="isolate"
+      style={{ height: "260px", width: "100%", borderRadius: "8px" }}
+    >
       <TileLayer url={tileUrl} attribution="" />
       <ClickHandler onPick={onChange} />
       {value && <Marker position={[value.lat, value.lng]} icon={pinIcon} />}
