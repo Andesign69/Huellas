@@ -14,25 +14,12 @@ export default function AyudaPage() {
         herramienta.
       </p>
 
-      <section className="rounded-2xl border border-border bg-card p-4">
-        <h2 className="font-heading font-bold">Sobre esta app</h2>
-        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          Refugio Huellas fue creada por <strong className="text-foreground">Andrés Martínez</strong>{" "}
-          para ayudar a reunir mascotas perdidas y encontradas tras el sismo del 10 de agosto de 2026
-          en Colombia. Es una app <strong className="text-foreground">gratuita y sin ánimo de lucro</strong>,
-          construida por voluntad propia para apoyar a la comunidad afectada.
-        </p>
-        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          No reemplaza a las autoridades, a la Cruz Roja ni a los organismos oficiales de emergencia.
-        </p>
-      </section>
-
-      <section className="mt-4 rounded-2xl border border-border bg-tertiary p-4">
+      <section className="rounded-2xl border border-border bg-card p-4 shadow-sm">
         <div className="flex items-center gap-2">
-          <Heart className="h-5 w-5 text-tertiary-foreground" />
-          <h2 className="font-heading font-bold text-tertiary-foreground">Una Garra por Colombia</h2>
+          <Heart className="h-5 w-5 text-primary" />
+          <h2 className="font-heading text-lg font-bold">Una Garra por Colombia</h2>
         </div>
-        <p className="mt-2 text-sm leading-relaxed text-tertiary-foreground/80">
+        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
           Vaki oficial para comida, medicamentos, insumos veterinarios y reconstrucción de refugios
           para los animales afectados por el sismo.
         </p>
@@ -40,13 +27,23 @@ export default function AyudaPage() {
           href={VAKI_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-3 flex w-full items-center justify-center rounded-full bg-card py-2.5 text-sm font-semibold text-primary shadow-sm"
+          className="mt-3 flex w-full items-center justify-center rounded-full bg-primary py-2.5 text-sm font-semibold text-primary-foreground"
         >
           Donar en Vaki
         </a>
       </section>
 
-      <section className="mt-4 rounded-xl border border-dashed border-border p-4">
+      <section className="mt-4 rounded-xl p-4">
+        <h2 className="text-sm font-bold text-muted-foreground">Sobre esta app</h2>
+        <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+          Refugio Huellas fue creada por Andrés Martínez para ayudar a reunir mascotas perdidas y
+          encontradas tras el sismo del 10 de agosto de 2026 en Colombia. Es una app gratuita y sin
+          ánimo de lucro, construida por voluntad propia para apoyar a la comunidad afectada. No
+          reemplaza a las autoridades, a la Cruz Roja ni a los organismos oficiales de emergencia.
+        </p>
+      </section>
+
+      <section className="mt-2 rounded-xl border border-dashed border-border p-4">
         <div className="flex items-center gap-2">
           <HandHeart className="h-4.5 w-4.5 text-muted-foreground" />
           <h2 className="text-sm font-bold text-muted-foreground">
