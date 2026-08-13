@@ -21,8 +21,12 @@ No reemplaza a las autoridades ni a Cruz Roja. Es un mapa + formulario público 
 - `src/components/LocationPicker.tsx` — mini mapa para marcar la ubicación al reportar.
 - `supabase/schema.sql` — esquema de base de datos, políticas RLS y seed de fundaciones/refugios conocidos.
 
-## Estado del proyecto
+## Estado del proyecto y documentación
 
-El plan por fases y las tareas pendientes están en el tracker: pídele el enlace a quien lo esté coordinando, o revisa las tareas de esta sesión.
+Toda la documentación de producto y técnica vive en [`Product-Project/`](Product-Project/) — pensada para abrirse como vault de Obsidian.
 
-Pendiente antes de producción (Fase 2 del plan): rate limiting, anti-spam, moderación y aviso de responsabilidad. Ahora mismo cualquiera puede publicar sin restricciones — es intencional para la Fase 1, pero no debe quedar así en producción con tráfico real.
+- Estado actual: [`Product-Project/PROJECT_STATUS.md`](Product-Project/PROJECT_STATUS.md)
+- Tareas pendientes: [`Product-Project/PROJECT_TRACKER.md`](Product-Project/PROJECT_TRACKER.md)
+- Arquitectura y decisiones técnicas: [`Product-Project/13_Technical/`](Product-Project/13_Technical/)
+- Historial de decisiones: [`Product-Project/20_Governance/Decision-Log.md`](Product-Project/20_Governance/Decision-Log.md)
+- Handoff para Apex One: [`Product-Project/14_Build/Handoff-ApexOne.md`](Product-Project/14_Build/Handoff-ApexOne.md)

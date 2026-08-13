@@ -280,8 +280,8 @@ update public.shelters set lat = 5.0689, lng = -75.5174, is_exact_location = fal
   where name = 'Ángeles de la Calle';
 
 -- Solicitudes ciudadanas para agregar un nuevo refugio a la lista (Fase 3).
--- Nadie puede leerlas por la API pública; llegan por correo (ver /refugios/sugerir)
--- y quien administre el proyecto las revisa antes de agregarlas a "shelters" a mano.
+-- Nadie puede leerlas por la API pública; se revisan a mano desde el Table
+-- Editor de Supabase (ver /refugios/sugerir) antes de agregarlas a "shelters".
 create table if not exists public.shelter_suggestions (
   id uuid primary key default gen_random_uuid(),
   name text not null,

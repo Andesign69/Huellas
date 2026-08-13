@@ -40,3 +40,14 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# framework personal de documentación (reutilizable en otros proyectos,
+# no específico de Rastrea Huellas — no se comparte con colaboradores)
+rastrea_huellas_documentation/.obsidian/
+rastrea_huellas_documentation/AGENTS.md
+rastrea_huellas_documentation/PRODUCT_PROJECT_PLAYBOOK.md
+rastrea_huellas_documentation/PROJECT_APPLICABILITY_MATRIX_TEMPLATE.md
+rastrea_huellas_documentation/PROJECT_STARTER_PROMPT.md
+rastrea_huellas_documentation/QA_RULES.md
+rastrea_huellas_documentation/README.md
+rastrea_huellas_documentation/design-qa/
