@@ -7,6 +7,15 @@ import AdminLogoutButton from "@/components/AdminLogoutButton";
 import { timeAgo } from "@/lib/time";
 import type { AdminFlag, AdminShelterSuggestion } from "@/lib/adminTypes";
 
+// Sin esto, el build puede prerenderizar esta página como estática: en el
+// Dockerfile, ADMIN_PASSWORD no existe todavía en tiempo de build (solo se
+// inyecta al arrancar el contenedor, igual que DATABASE_URL — ver
+// docs/deploy.md), así que hasAdminSession() corta antes de tocar cookies()
+// y Next nunca detecta que la ruta depende de la sesión. El resultado
+// quedaría cacheado para siempre como "sin sesión → redirect a /login",
+// ignorando la cookie real en cada request.
+export const dynamic = "force-dynamic";
+
 const SPECIES_LABEL: Record<string, string> = { perro: "Perro", gato: "Gato", otro: "Mascota" };
 const STATUS_LABEL: Record<string, string> = { perdido: "Perdido", encontrado: "Encontrado", en_refugio: "En refugio" };
 
