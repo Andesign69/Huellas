@@ -5,6 +5,7 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { ArrowLeft, PawPrint, MessageCircle, CheckCircle2, Flag, Share2 } from "lucide-react";
 import { apiFetch } from "@/lib/api-client";
+import Logo from "@/components/Logo";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -147,7 +148,7 @@ export default function MascotaDetailPage({ params }: { params: Promise<{ id: st
           <Link href="/" className="text-foreground">
             <ArrowLeft className="h-5 w-5" />
           </Link>
-          <span className="font-heading text-lg font-bold">Rastrea Huellas</span>
+          <Logo className="h-[36px] w-auto" />
         </div>
         {report && (
           <button

@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { PawPrint, Search, HeartHandshake, ArrowRight } from "lucide-react";
+import { Search, HeartHandshake, ArrowRight } from "lucide-react";
 import { apiFetch } from "@/lib/api-client";
+import Logo from "@/components/Logo";
 import PetCard from "@/components/PetCard";
 import type { PetReport } from "@/lib/types";
 
@@ -34,9 +35,8 @@ export default function HomePage() {
 
   return (
     <main className="flex flex-1 flex-col px-4 pt-5">
-      <header className="mb-5 flex items-center gap-2">
-        <PawPrint className="h-6 w-6 text-primary" />
-        <span className="font-heading text-lg font-bold">Rastrea Huellas</span>
+      <header className="mb-5 flex items-center">
+        <Logo className="h-[41px] w-auto" />
       </header>
 
       <h1 className="font-heading text-2xl font-extrabold leading-tight text-balance">
