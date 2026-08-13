@@ -1,13 +1,15 @@
 "use client";
 
-import { useState, type FormEvent, Suspense } from "react";
+import { useEffect, useState, type FormEvent, Suspense } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { LocateFixed, Info, MapPin, Camera, Megaphone } from "lucide-react";
 import { apiFetch } from "@/lib/api-client";
-import { SUGGESTED_CITIES, centerForCity } from "@/lib/cities";
+import { DEFAULT_CENTER } from "@/lib/cities";
+import { geocodeCity } from "@/lib/geocode";
 import { saveResolveToken } from "@/lib/resolveTokens";
 import { compressImage } from "@/lib/compressImage";
+import CityCombobox from "@/components/CityCombobox";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -67,6 +69,7 @@ function ReportarForm() {
   const [breed, setBreed] = useState("");
   const [sex, setSex] = useState<Sex | "">("");
   const [city, setCity] = useState("");
+  const [cityCoords, setCityCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [description, setDescription] = useState("");
   const [contact, setContact] = useState("");
   const [photo, setPhoto] = useState<File | null>(null);
@@ -79,6 +82,23 @@ function ReportarForm() {
   const [error, setError] = useState<string | null>(null);
   const [honeypot, setHoneypot] = useState("");
   const [formLoadedAt] = useState(() => new Date().toISOString());
+
+  // El combobox ya trae coordenadas para cualquier municipio de la lista
+  // oficial — esto solo cubre el caso de "no aparece, lo agrego tal cual"
+  // (veredas, corregimientos), geocodificando lo que se escribió como
+  // respaldo para centrar el mapa.
+  useEffect(() => {
+    if (cityCoords || city.trim().length < 3) return;
+    const controller = new AbortController();
+    const timeout = setTimeout(async () => {
+      const coords = await geocodeCity(city, controller.signal);
+      if (coords) setCityCoords(coords);
+    }, 600);
+    return () => {
+      clearTimeout(timeout);
+      controller.abort();
+    };
+  }, [city, cityCoords]);
 
   function useMyLocation() {
     setLocationError(null);
@@ -247,19 +267,13 @@ function ReportarForm() {
             <Label htmlFor="city" className="mb-1.5">
               Ciudad o municipio
             </Label>
-            <Input
-              id="city"
-              list="city-suggestions"
-              placeholder="Ej. Pereira, Dosquebradas, Armenia…"
+            <CityCombobox
               value={city}
-              onChange={(e) => setCity(e.target.value)}
-              required
+              onChange={(text, coords) => {
+                setCity(text);
+                setCityCoords(coords);
+              }}
             />
-            <datalist id="city-suggestions">
-              {SUGGESTED_CITIES.map((c) => (
-                <option key={c} value={c} />
-              ))}
-            </datalist>
           </div>
 
           <Button
@@ -279,7 +293,7 @@ function ReportarForm() {
             <LocationPicker
               value={pos}
               onChange={(lat, lng) => setPos({ lat, lng })}
-              center={centerForCity(city)}
+              center={cityCoords ? [cityCoords.lat, cityCoords.lng] : DEFAULT_CENTER}
               flyTo={gpsFocus}
             />
           </div>

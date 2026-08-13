@@ -73,9 +73,10 @@ export default function AyudaPage() {
       <section className="mt-4 rounded-xl p-4">
         <h2 className="text-sm font-bold text-muted-foreground">Sobre esta app</h2>
         <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
-          Rastrea Huellas fue creada por Andrés Martínez con ayuda de Diego Peña y Apex One para
-          ayudar a reunir mascotas perdidas y encontradas tras el sismo del 10 de agosto de 2026 en
-          Colombia. Es una app gratuita y sin ánimo de lucro, construida por voluntad propia para
+          Rastrea Huellas fue creada por Andrés Martínez, para ayudar a reunir mascotas perdidas y
+          encontradas tras el sismo del 10 de agosto de 2026 en Colombia. Fue creada con ayuda de
+          Diego Peña y Apex One en el desarrollo, y de Fabián Moncada en la parte audiovisual y de
+          difusión. Es una app gratuita y sin ánimo de lucro, construida por voluntad propia para
           apoyar a la comunidad afectada. No reemplaza a las autoridades, a la Cruz Roja ni a los
           organismos oficiales de emergencia.
         </p>

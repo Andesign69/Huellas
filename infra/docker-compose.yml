@@ -46,6 +46,7 @@ services:
     environment:
       DATABASE_URL: postgres://huellas_app_prod:${HUELLAS_APP_PASSWORD_PROD}@postgres:5432/huellas_prod
       UPLOADS_DIR: /data/uploads
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD_PROD}
     volumes:
       - /srv/huellas/uploads/prod:/data/uploads
     depends_on:
@@ -60,6 +61,7 @@ services:
     environment:
       DATABASE_URL: postgres://huellas_app_staging:${HUELLAS_APP_PASSWORD_STAGING}@postgres:5432/huellas_staging
       UPLOADS_DIR: /data/uploads
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD_STAGING}
     volumes:
       - /srv/huellas/uploads/staging:/data/uploads
     depends_on:

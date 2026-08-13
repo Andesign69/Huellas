@@ -416,3 +416,113 @@ end;
 $$;
 
 grant execute on function public.suggest_shelter(text, text, text, text, text, text, timestamptz, text) to :approle;
+
+-- ============================================================
+-- Fase 4 — Panel de administración (banderas de contenido y
+-- sugerencias de refugio)
+-- ============================================================
+-- No hay un rol de Postgres separado para el admin: la autorización vive
+-- en la capa de Next.js (cookie de sesión firmada con ADMIN_PASSWORD, ver
+-- src/lib/adminAuth.ts). Estas funciones solo evitan que :approle necesite
+-- SELECT/DELETE/INSERT directo sobre tablas hoy completamente cerradas
+-- (report_flags, shelter_suggestions) — mismo patrón security definer que
+-- el resto del archivo.
+
+create or replace function public.admin_list_flags()
+returns table (
+  flag_id uuid,
+  reason text,
+  flagged_at timestamptz,
+  report_id uuid,
+  report_name text,
+  report_species text,
+  report_status text,
+  report_city text,
+  report_photo_url text,
+  report_contact text
+)
+language sql
+security definer
+set search_path = public, extensions
+as $$
+  select f.id, f.reason, f.created_at,
+         r.id, r.name, r.species, r.status, r.city, r.photo_url, r.contact
+  from public.report_flags f
+  join public.reports r on r.id = f.report_id
+  order by f.created_at desc;
+$$;
+
+grant execute on function public.admin_list_flags() to :approle;
+
+create or replace function public.admin_dismiss_flag(p_flag_id uuid)
+returns void
+language sql
+security definer
+set search_path = public, extensions
+as $$
+  delete from public.report_flags where id = p_flag_id;
+$$;
+
+grant execute on function public.admin_dismiss_flag(uuid) to :approle;
+
+create or replace function public.admin_list_shelter_suggestions()
+returns table (
+  id uuid,
+  name text,
+  city text,
+  contact text,
+  website text,
+  notes text,
+  created_at timestamptz
+)
+language sql
+security definer
+set search_path = public, extensions
+as $$
+  select id, name, city, contact, website, notes, created_at
+  from public.shelter_suggestions
+  order by created_at desc;
+$$;
+
+grant execute on function public.admin_list_shelter_suggestions() to :approle;
+
+-- Aprobar = copiarla a "shelters" (sin lat/lng — se completan a mano
+-- después, igual que las fundaciones cargadas en la Fase 3 de arriba) y
+-- sacarla de la cola. Devuelve el id del refugio nuevo.
+create or replace function public.admin_approve_shelter_suggestion(p_suggestion_id uuid)
+returns uuid
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  v_new_id uuid;
+begin
+  insert into public.shelters (name, city, contact, website, notes)
+  select name, city, contact, website, notes
+  from public.shelter_suggestions
+  where id = p_suggestion_id
+  returning id into v_new_id;
+
+  if v_new_id is null then
+    raise exception 'Sugerencia no encontrada.';
+  end if;
+
+  delete from public.shelter_suggestions where id = p_suggestion_id;
+
+  return v_new_id;
+end;
+$$;
+
+grant execute on function public.admin_approve_shelter_suggestion(uuid) to :approle;
+
+create or replace function public.admin_reject_shelter_suggestion(p_suggestion_id uuid)
+returns void
+language sql
+security definer
+set search_path = public, extensions
+as $$
+  delete from public.shelter_suggestions where id = p_suggestion_id;
+$$;
+
+grant execute on function public.admin_reject_shelter_suggestion(uuid) to :approle;

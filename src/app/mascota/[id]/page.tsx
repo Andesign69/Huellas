@@ -6,7 +6,7 @@ import dynamic from "next/dynamic";
 import { ArrowLeft, PawPrint, MessageCircle, CheckCircle2, Flag, Share2 } from "lucide-react";
 import { apiFetch } from "@/lib/api-client";
 import Logo from "@/components/Logo";
-import { Badge } from "@/components/ui/badge";
+import StatusBadge from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { timeAgo } from "@/lib/time";
@@ -14,12 +14,6 @@ import { getResolveToken } from "@/lib/resolveTokens";
 import type { PetReport } from "@/lib/types";
 
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
-
-const STATUS_LABEL: Record<string, string> = {
-  perdido: "Perdido",
-  encontrado: "Encontrado",
-  en_refugio: "En refugio",
-};
 
 const SPECIES_LABEL: Record<string, string> = {
   perro: "Perro",
@@ -182,9 +176,7 @@ export default function MascotaDetailPage({ params }: { params: Promise<{ id: st
               </div>
             )}
             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-4">
-              <Badge variant={report.status === "perdido" ? "destructive" : "default"} className="mb-2">
-                {STATUS_LABEL[report.status]}
-              </Badge>
+              <StatusBadge status={report.status} className="mb-2" />
               <p className="font-heading text-2xl font-extrabold text-white">
                 {report.name?.trim() || SPECIES_LABEL[report.species]}
               </p>

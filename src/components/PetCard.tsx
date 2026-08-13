@@ -1,14 +1,9 @@
 import Link from "next/link";
 import { PawPrint } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import StatusBadge from "@/components/StatusBadge";
 import { timeAgo } from "@/lib/time";
 import type { PetReport } from "@/lib/types";
-
-const STATUS_LABEL: Record<string, string> = {
-  perdido: "Perdido",
-  encontrado: "Encontrado",
-  en_refugio: "En refugio",
-};
 
 const SPECIES_LABEL: Record<string, string> = {
   perro: "Perro",
@@ -40,12 +35,7 @@ export default function PetCard({ report }: { report: PetReport }) {
             <PawPrint className="h-8 w-8" />
           </div>
         )}
-        <Badge
-          className="absolute left-1.5 top-1.5 px-1.5 py-0 text-[0.65rem]"
-          variant={report.status === "perdido" ? "destructive" : "default"}
-        >
-          {STATUS_LABEL[report.status]}
-        </Badge>
+        <StatusBadge status={report.status} className="absolute left-1.5 top-1.5 px-1.5 py-0 text-[0.65rem]" />
       </div>
       <div className="p-2.5">
         <p className="font-heading text-sm font-bold leading-tight truncate">{displayName}</p>
