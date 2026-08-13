@@ -4,7 +4,7 @@ import { useState, type FormEvent, Suspense } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { LocateFixed, Info, MapPin, Camera, Megaphone } from "lucide-react";
-import { supabase, supabaseConfigured } from "@/lib/supabase";
+import { apiFetch } from "@/lib/api-client";
 import { SUGGESTED_CITIES, centerForCity } from "@/lib/cities";
 import { saveResolveToken } from "@/lib/resolveTokens";
 import { compressImage } from "@/lib/compressImage";
@@ -119,10 +119,6 @@ function ReportarForm() {
     e.preventDefault();
     setError(null);
 
-    if (!supabaseConfigured) {
-      setError("El sitio no tiene Supabase configurado todavía (.env.local). Avísale a quien lo esté armando.");
-      return;
-    }
     if (!city.trim()) {
       setError("Dinos en qué ciudad o municipio fue.");
       return;
@@ -140,45 +136,49 @@ function ReportarForm() {
 
     let photo_url: string | null = null;
     if (photo) {
-      const path = `${crypto.randomUUID()}-${photo.name}`;
-      const { error: uploadError } = await supabase.storage.from("pet-photos").upload(path, photo);
-      if (uploadError) {
-        setError("No se pudo subir la foto: " + uploadError.message);
+      try {
+        const formData = new FormData();
+        formData.append("photo", photo);
+        const uploaded = await apiFetch<{ url: string }>("/api/upload", { method: "POST", body: formData });
+        photo_url = uploaded.url;
+      } catch (err) {
+        setError("No se pudo subir la foto: " + (err instanceof Error ? err.message : "Error de red."));
         setSubmitting(false);
         return;
       }
-      photo_url = supabase.storage.from("pet-photos").getPublicUrl(path).data.publicUrl;
     }
 
-    const { data: rpcData, error: rpcError } = await supabase.rpc("submit_report", {
-      p_name: name.trim() || null,
-      p_species: species,
-      p_breed: breed.trim() || null,
-      p_sex: sex || null,
-      p_status: status,
-      p_photo_url: photo_url,
-      p_lat: pos.lat,
-      p_lng: pos.lng,
-      p_city: city,
-      p_description: description || null,
-      p_contact: contact,
-      p_honeypot: honeypot || null,
-      p_form_loaded_at: formLoadedAt,
-    });
+    try {
+      const created = await apiFetch<{ id: string; resolve_token: string }>("/api/reports", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: name.trim() || null,
+          species,
+          breed: breed.trim() || null,
+          sex: sex || null,
+          status,
+          photo_url,
+          lat: pos.lat,
+          lng: pos.lng,
+          city,
+          description: description || null,
+          contact,
+          honeypot: honeypot || null,
+          form_loaded_at: formLoadedAt,
+        }),
+      });
 
-    setSubmitting(false);
+      if (created?.id && created?.resolve_token) {
+        saveResolveToken(created.id, created.resolve_token);
+      }
 
-    if (rpcError) {
-      setError(rpcError.message);
-      return;
+      router.push("/");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error de red.");
+    } finally {
+      setSubmitting(false);
     }
-
-    const created = rpcData?.[0];
-    if (created?.id && created?.resolve_token) {
-      saveResolveToken(created.id, created.resolve_token);
-    }
-
-    router.push("/");
   }
 
   return (

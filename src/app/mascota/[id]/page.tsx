@@ -4,7 +4,7 @@ import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { ArrowLeft, PawPrint, MessageCircle, CheckCircle2, Flag, Share2 } from "lucide-react";
-import { supabase, supabaseConfigured } from "@/lib/supabase";
+import { apiFetch } from "@/lib/api-client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -34,15 +34,15 @@ function whatsappLink(contact: string, text: string) {
 export default function MascotaDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const [report, setReport] = useState<PetReport | null>(null);
-  const [loading, setLoading] = useState(supabaseConfigured);
-  const [error, setError] = useState<string | null>(
-    supabaseConfigured ? null : "Falta configurar Supabase (.env.local)."
-  );
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [confirmingResolve, setConfirmingResolve] = useState(false);
   const [resolving, setResolving] = useState(false);
   const [resolveError, setResolveError] = useState<string | null>(null);
   const [flagging, setFlagging] = useState(false);
   const [flagReason, setFlagReason] = useState("");
+  const [flagHoneypot, setFlagHoneypot] = useState("");
+  const [flagLoadedAt, setFlagLoadedAt] = useState<string | null>(null);
   const [flagSubmitting, setFlagSubmitting] = useState(false);
   const [flagError, setFlagError] = useState<string | null>(null);
   const [flagSubmitted, setFlagSubmitted] = useState(false);
@@ -84,54 +84,60 @@ export default function MascotaDetailPage({ params }: { params: Promise<{ id: st
     if (!report) return;
     setFlagSubmitting(true);
     setFlagError(null);
-    const { error: flagErrorResult } = await supabase
-      .from("report_flags")
-      .insert({ report_id: report.id, reason: flagReason.trim() || null });
-    setFlagSubmitting(false);
-    if (flagErrorResult) {
-      setFlagError("No se pudo enviar: " + flagErrorResult.message);
-      return;
+    try {
+      await apiFetch(`/api/reports/${report.id}/flag`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reason: flagReason.trim() || null,
+          honeypot: flagHoneypot || null,
+          form_loaded_at: flagLoadedAt,
+        }),
+      });
+      setFlagSubmitted(true);
+      setFlagging(false);
+    } catch (err) {
+      setFlagError("No se pudo enviar: " + (err instanceof Error ? err.message : "Error de red."));
+    } finally {
+      setFlagSubmitting(false);
     }
-    setFlagSubmitted(true);
-    setFlagging(false);
   }
 
   async function handleResolve() {
     if (!report || !resolveToken) return;
     setResolving(true);
     setResolveError(null);
-    const { error: rpcError } = await supabase.rpc("resolve_report", {
-      p_report_id: report.id,
-      p_token: resolveToken,
-    });
-    setResolving(false);
-    if (rpcError) {
-      setResolveError("No se pudo actualizar: " + rpcError.message);
-      return;
+    try {
+      await apiFetch(`/api/reports/${report.id}/resolve`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: resolveToken }),
+      });
+      setReport({ ...report, resolved: true });
+      setConfirmingResolve(false);
+    } catch (err) {
+      setResolveError("No se pudo actualizar: " + (err instanceof Error ? err.message : "Error de red."));
+    } finally {
+      setResolving(false);
     }
-    setReport({ ...report, resolved: true });
-    setConfirmingResolve(false);
   }
 
   useEffect(() => {
-    if (!supabaseConfigured) return;
-    supabase
-      .from("reports")
-      .select("*")
-      .eq("id", id)
-      .maybeSingle()
-      .then(
-        ({ data, error }) => {
-          if (error) setError(error.message);
-          else if (!data) setError("Este reporte ya no existe.");
-          else setReport(data as PetReport);
-          setLoading(false);
-        },
-        (err: unknown) => {
-          setError(err instanceof Error ? err.message : "Error de red.");
-          setLoading(false);
-        }
-      );
+    let cancelled = false;
+    apiFetch<PetReport>(`/api/reports/${id}`)
+      .then((data) => {
+        if (cancelled) return;
+        setReport(data);
+        setLoading(false);
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setError(err instanceof Error ? err.message : "Error de red.");
+        setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
   return (
@@ -222,6 +228,19 @@ export default function MascotaDetailPage({ params }: { params: Promise<{ id: st
             ) : flagging ? (
               <div className="flex flex-col gap-2 rounded-2xl border border-border bg-card p-3">
                 <p className="text-sm font-semibold">¿Qué tiene de malo este reporte?</p>
+                {/* Honeypot: invisible para personas, los bots que llenan todos los campos caen aquí. */}
+                <div className="absolute left-[-9999px] top-auto h-0 w-0 overflow-hidden" aria-hidden="true">
+                  <label htmlFor="flag-website">No llenar este campo</label>
+                  <input
+                    id="flag-website"
+                    name="website"
+                    type="text"
+                    tabIndex={-1}
+                    autoComplete="off"
+                    value={flagHoneypot}
+                    onChange={(e) => setFlagHoneypot(e.target.value)}
+                  />
+                </div>
                 <Textarea
                   value={flagReason}
                   onChange={(e) => setFlagReason(e.target.value)}
@@ -247,7 +266,10 @@ export default function MascotaDetailPage({ params }: { params: Promise<{ id: st
             ) : (
               <button
                 type="button"
-                onClick={() => setFlagging(true)}
+                onClick={() => {
+                  setFlagging(true);
+                  setFlagLoadedAt(new Date().toISOString());
+                }}
                 className="flex w-full items-center justify-center gap-1.5 py-1 text-center text-xs font-medium text-muted-foreground underline underline-offset-2"
               >
                 <Flag className="h-3 w-3" />

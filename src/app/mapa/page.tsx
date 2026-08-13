@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { Search } from "lucide-react";
-import { supabase, supabaseConfigured } from "@/lib/supabase";
+import { apiFetch } from "@/lib/api-client";
 import { Input } from "@/components/ui/input";
 import PillGroup from "@/components/PillGroup";
 import PetCard from "@/components/PetCard";
@@ -28,10 +28,8 @@ const SPECIES_OPTIONS = [
 
 export default function MapaPage() {
   const [reports, setReports] = useState<PetReport[]>([]);
-  const [loading, setLoading] = useState(supabaseConfigured);
-  const [loadError, setLoadError] = useState<string | null>(
-    supabaseConfigured ? null : "Falta configurar Supabase (.env.local)."
-  );
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [cityFilter, setCityFilter] = useState("todas");
   const [statusFilter, setStatusFilter] = useState("todos");
@@ -40,27 +38,29 @@ export default function MapaPage() {
   const [shelters, setShelters] = useState<Shelter[]>([]);
 
   useEffect(() => {
-    if (!supabaseConfigured) return;
-    supabase
-      .from("reports")
-      .select("*")
-      .eq("resolved", false)
-      .order("created_at", { ascending: false })
-      .then(
-        ({ data, error }) => {
-          if (error) setLoadError(error.message);
-          else setReports((data ?? []) as PetReport[]);
-          setLoading(false);
-        },
-        (err: unknown) => {
-          setLoadError(err instanceof Error ? err.message : "Error de red al cargar reportes.");
-          setLoading(false);
-        }
-      );
-    supabase
-      .from("shelters")
-      .select("*")
-      .then(({ data }) => setShelters((data ?? []) as Shelter[]));
+    let cancelled = false;
+    apiFetch<PetReport[]>("/api/reports")
+      .then((data) => {
+        if (cancelled) return;
+        setReports(data);
+        setLoading(false);
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setLoadError(err instanceof Error ? err.message : "Error de red al cargar reportes.");
+        setLoading(false);
+      });
+    apiFetch<Shelter[]>("/api/shelters")
+      .then((data) => {
+        if (!cancelled) setShelters(data);
+      })
+      .catch(() => {
+        // los refugios son secundarios en esta vista; si fallan, el mapa/lista
+        // de reportes sigue funcionando igual
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const cityOptions = useMemo(() => {

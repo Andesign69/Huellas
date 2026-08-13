@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { HeartHandshake } from "lucide-react";
-import { supabase, supabaseConfigured } from "@/lib/supabase";
+import { apiFetch } from "@/lib/api-client";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -16,36 +16,36 @@ export default function SugerirRefugioPage() {
   const [contact, setContact] = useState("");
   const [website, setWebsite] = useState("");
   const [notes, setNotes] = useState("");
+  const [honeypot, setHoneypot] = useState("");
+  const [formLoadedAt] = useState(() => new Date().toISOString());
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
-
-    if (!supabaseConfigured) {
-      setError("El sitio no tiene Supabase configurado todavía.");
-      return;
-    }
-
     setSubmitting(true);
 
-    const { error: insertError } = await supabase.from("shelter_suggestions").insert({
-      name,
-      city,
-      contact,
-      website: website || null,
-      notes: notes || null,
-    });
-
-    if (insertError) {
+    try {
+      await apiFetch("/api/shelters/suggest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          city,
+          contact,
+          website: website || null,
+          notes: notes || null,
+          honeypot: honeypot || null,
+          form_loaded_at: formLoadedAt,
+        }),
+      });
+      router.push("/refugios?sugerido=1");
+    } catch (err) {
+      setError("No se pudo enviar: " + (err instanceof Error ? err.message : "Error de red."));
+    } finally {
       setSubmitting(false);
-      setError("No se pudo enviar: " + insertError.message);
-      return;
     }
-
-    setSubmitting(false);
-    router.push("/refugios?sugerido=1");
   }
 
   return (
@@ -60,6 +60,20 @@ export default function SugerirRefugioPage() {
       </p>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4 pb-8">
+        {/* Honeypot: invisible para personas, los bots que llenan todos los campos caen aquí. */}
+        <div className="absolute left-[-9999px] top-auto h-0 w-0 overflow-hidden" aria-hidden="true">
+          <label htmlFor="company">No llenar este campo</label>
+          <input
+            id="company"
+            name="company"
+            type="text"
+            tabIndex={-1}
+            autoComplete="off"
+            value={honeypot}
+            onChange={(e) => setHoneypot(e.target.value)}
+          />
+        </div>
+
         <div>
           <Label htmlFor="name" className="mb-1.5">
             Nombre de la fundación o refugio

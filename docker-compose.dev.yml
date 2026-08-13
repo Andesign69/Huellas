@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: huellas-dev-postgres
+    environment:
+      POSTGRES_USER: huellas
+      POSTGRES_PASSWORD: huellas_dev_only
+      POSTGRES_DB: huellas_dev
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - huellas_dev_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U huellas -d huellas_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  huellas_dev_pg:

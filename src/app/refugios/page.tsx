@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Heart, Phone, MapPin, Globe, HeartHandshake, CheckCircle2 } from "lucide-react";
-import { supabase, supabaseConfigured } from "@/lib/supabase";
+import { apiFetch } from "@/lib/api-client";
 import type { Shelter } from "@/lib/types";
 
 function SugeridoBanner() {
@@ -20,28 +20,25 @@ function SugeridoBanner() {
 
 export default function RefugiosPage() {
   const [shelters, setShelters] = useState<Shelter[]>([]);
-  const [loading, setLoading] = useState(supabaseConfigured);
-  const [error, setError] = useState<string | null>(
-    supabaseConfigured ? null : "Falta configurar Supabase (.env.local)."
-  );
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!supabaseConfigured) return;
-    supabase
-      .from("shelters")
-      .select("*")
-      .order("city", { ascending: true })
-      .then(
-        ({ data, error }) => {
-          if (error) setError(error.message);
-          else setShelters((data ?? []) as Shelter[]);
-          setLoading(false);
-        },
-        (err: unknown) => {
-          setError(err instanceof Error ? err.message : "Error de red.");
-          setLoading(false);
-        }
-      );
+    let cancelled = false;
+    apiFetch<Shelter[]>("/api/shelters")
+      .then((data) => {
+        if (cancelled) return;
+        setShelters(data);
+        setLoading(false);
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setError(err instanceof Error ? err.message : "Error de red.");
+        setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (

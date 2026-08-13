@@ -1,0 +1,24 @@
+# DRAFT — not wired into a real server block yet. Written during WBS Chapter 4
+# (Photo Upload Endpoint) while the /photos/ URL scheme was fresh in context;
+# actually deployed as part of the full reverse-proxy config in Chapter 7
+# (Containerization & Deploy Pipeline), once prod/staging hostnames exist.
+#
+# Goal: nginx serves uploaded photos directly from disk — matching exactly
+# what src/app/photos/[...path]/route.ts does for local dev (same URL shape,
+# same filename pattern), so nothing in the app needs to know which one is
+# actually serving a given request. Everything else (/, /api/*, etc.) still
+# proxies to the Next.js app; only this path bypasses it.
+#
+# $env is either "prod" or "staging" — each gets its own server block in
+# Chapter 7, each pointing at its own upload directory.
+
+# Filenames are always <uuid>.<jpg|png|webp> (see src/lib/sniff-image.ts) —
+# anything else falls through to the location below and 404s.
+location ~ ^/photos/(?<photofile>[a-f0-9-]+\.(jpg|png|webp))$ {
+    alias /srv/huellas/uploads/$env/$photofile;
+    add_header Cache-Control "public, max-age=31536000, immutable";
+}
+
+location /photos/ {
+    return 404;
+}

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { PawPrint, Search, HeartHandshake, ArrowRight } from "lucide-react";
-import { supabase, supabaseConfigured } from "@/lib/supabase";
+import { apiFetch } from "@/lib/api-client";
 import PetCard from "@/components/PetCard";
 import type { PetReport } from "@/lib/types";
 
@@ -11,30 +11,25 @@ const PREVIEW_COUNT = 6;
 
 export default function HomePage() {
   const [reports, setReports] = useState<PetReport[]>([]);
-  const [loading, setLoading] = useState(supabaseConfigured);
-  const [loadError, setLoadError] = useState<string | null>(
-    supabaseConfigured ? null : "Falta configurar Supabase (.env.local)."
-  );
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!supabaseConfigured) return;
-    supabase
-      .from("reports")
-      .select("*")
-      .eq("resolved", false)
-      .order("created_at", { ascending: false })
-      .limit(PREVIEW_COUNT)
-      .then(
-        ({ data, error }) => {
-          if (error) setLoadError(error.message);
-          else setReports((data ?? []) as PetReport[]);
-          setLoading(false);
-        },
-        (err: unknown) => {
-          setLoadError(err instanceof Error ? err.message : "Error de red al cargar reportes.");
-          setLoading(false);
-        }
-      );
+    let cancelled = false;
+    apiFetch<PetReport[]>(`/api/reports?limit=${PREVIEW_COUNT}`)
+      .then((data) => {
+        if (cancelled) return;
+        setReports(data);
+        setLoading(false);
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setLoadError(err instanceof Error ? err.message : "Error de red al cargar reportes.");
+        setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (
@@ -87,10 +82,7 @@ export default function HomePage() {
       {loading ? (
         <p className="text-sm text-muted-foreground">Cargando reportes…</p>
       ) : loadError ? (
-        <p className="text-sm text-destructive">
-          No se pudieron cargar los reportes: {loadError}. Revisa que .env.local tenga las credenciales
-          de Supabase.
-        </p>
+        <p className="text-sm text-destructive">No se pudieron cargar los reportes: {loadError}</p>
       ) : reports.length === 0 ? (
         <p className="text-sm text-muted-foreground">
           Todavía no hay reportes. Sé la primera persona en publicar uno.
