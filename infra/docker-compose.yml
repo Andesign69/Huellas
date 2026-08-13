@@ -1,0 +1,100 @@
+name: huellas
+
+x-app-build: &app-build
+  context: ..
+  dockerfile: infra/Dockerfile
+  args:
+    NEXT_PUBLIC_MAPTILER_KEY: ${NEXT_PUBLIC_MAPTILER_KEY:-}
+
+x-app-healthcheck: &app-healthcheck
+  test: ["CMD", "node", "-e", "fetch('http://localhost:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+  interval: 15s
+  timeout: 5s
+  retries: 5
+  start_period: 10s
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: huellas_prod
+      HUELLAS_APP_ROLE_PROD: huellas_app_prod
+      HUELLAS_APP_ROLE_STAGING: huellas_app_staging
+      HUELLAS_APP_PASSWORD_PROD: ${HUELLAS_APP_PASSWORD_PROD}
+      HUELLAS_APP_PASSWORD_STAGING: ${HUELLAS_APP_PASSWORD_STAGING}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+      - ../supabase/schema.sql:/schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # Sin "ports:" a propósito — nunca queda expuesto en la interfaz pública
+    # del host, solo alcanzable desde otros contenedores de esta red interna
+    # de Compose (decisión bloqueante de WBS Chapter 7, verificada en el
+    # despliegue real con nc -zv desde fuera del VPS).
+
+  app-prod:
+    image: huellas-app:latest
+    build: *app-build
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://huellas_app_prod:${HUELLAS_APP_PASSWORD_PROD}@postgres:5432/huellas_prod
+      UPLOADS_DIR: /data/uploads
+    volumes:
+      - /srv/huellas/uploads/prod:/data/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck: *app-healthcheck
+
+  app-staging:
+    image: huellas-app:latest
+    build: *app-build
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://huellas_app_staging:${HUELLAS_APP_PASSWORD_STAGING}@postgres:5432/huellas_staging
+      UPLOADS_DIR: /data/uploads
+    volumes:
+      - /srv/huellas/uploads/staging:/data/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck: *app-healthcheck
+
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx:/etc/nginx/conf.d:ro
+      - /srv/huellas/uploads/prod:/uploads/prod:ro
+      - /srv/huellas/uploads/staging:/uploads/staging:ro
+      - certbot_webroot:/var/www/certbot:ro
+      - certbot_certs:/etc/letsencrypt:ro
+    depends_on:
+      - app-prod
+      - app-staging
+
+  # No es un servicio de larga duración — se invoca puntualmente con
+  # `docker compose run --rm certbot ...` para obtener/renovar certificados
+  # (ver docs/deploy.md). El renewal periódico corre por cron en el VPS,
+  # fuera de Compose, para no complicar esto con un contenedor que necesite
+  # señalarle a nginx que recargue.
+  certbot:
+    image: certbot/certbot
+    volumes:
+      - certbot_webroot:/var/www/certbot
+      - certbot_certs:/etc/letsencrypt
+
+volumes:
+  postgres_data:
+  certbot_webroot:
+  certbot_certs:

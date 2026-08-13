@@ -26,7 +26,8 @@ export async function POST(request: NextRequest) {
 
   await ensureUploadsDir();
   const filename = `${randomUUID()}.${sniffed.ext}`;
-  await writeFile(path.join(UPLOADS_DIR, filename), buffer);
+  // turbopackIgnore: see the comment on UPLOADS_DIR in src/lib/uploads.ts
+  await writeFile(path.join(/* turbopackIgnore: true */ UPLOADS_DIR, filename), buffer);
 
   return NextResponse.json({ url: `/photos/${filename}` }, { status: 201 });
 }

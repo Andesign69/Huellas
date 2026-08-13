@@ -4,25 +4,33 @@
 -- Only the Next.js backend connects to this database now; there is no more
 -- direct client access via PostgREST/anon key. Access control is therefore
 -- two layers, not one: the Next.js API layer is the primary boundary, and
--- the "huellas_app" role below (used by that backend, NOT the table owner)
--- is kept deliberately unprivileged beyond what these grants/policies allow
--- — real defense-in-depth, not vestigial, in case a route handler bug ever
--- lets a query through it shouldn't.
+-- the app role below (used by that backend, NOT the table owner) is kept
+-- deliberately unprivileged beyond what these grants/policies allow — real
+-- defense-in-depth, not vestigial, in case a route handler bug ever lets a
+-- query through it shouldn't.
 --
--- Run this whole file once against a fresh database as the owning/admin
--- role (e.g. via `psql` or `docker exec ... psql -f schema.sql`). Set
--- huellas_app's password separately (ALTER ROLE ... WITH PASSWORD ...) —
--- deliberately not stored in this file, which is committed to git.
+-- The role name is a psql variable, not hardcoded — prod and staging get
+-- genuinely separate roles (and therefore separate passwords), not just
+-- separate databases. Sharing one role+password across environments would
+-- mean a leaked staging credential also grants prod access. Run this file
+-- as the owning/admin role, passing the role name explicitly:
+--
+--   psql -v approle=huellas_app_prod -f schema.sql        # prod
+--   psql -v approle=huellas_app_staging -f schema.sql     # staging
+--   psql -v approle=huellas_app -f schema.sql             # local dev
+--
+-- Set that role's password separately after (ALTER ROLE ... WITH PASSWORD
+-- ...) — deliberately not stored in this file, which is committed to git.
 
 create extension if not exists pgcrypto;
 
-do $$
-begin
-  if not exists (select from pg_roles where rolname = 'huellas_app') then
-    create role huellas_app with login;
-  end if;
-end
-$$;
+-- No usamos un bloque do $$ ... $$ acá a propósito: psql NO sustituye
+-- variables (:approle) dentro de cuerpos con dollar-quoting, así que
+-- :approle quedaría como texto literal en vez de interpolarse. \gexec sí
+-- interpola normalmente porque es SQL de nivel superior.
+select format('create role %I with login', :'approle')
+where not exists (select from pg_roles where rolname = :'approle')
+\gexec
 
 create table if not exists public.reports (
   id uuid primary key default gen_random_uuid(),
@@ -52,7 +60,7 @@ create index if not exists reports_city_idx on public.reports (city);
 create index if not exists reports_created_at_idx on public.reports (created_at desc);
 
 alter table public.reports enable row level security;
-grant select on public.reports to huellas_app;
+grant select on public.reports to :approle;
 
 create policy "reports_public_select" on public.reports
   for select using (true);
@@ -66,14 +74,14 @@ create policy "reports_public_select" on public.reports
 -- puede a través de resolve_report() (más abajo), que exige el token
 -- secreto que se entrega al crear el reporte y se guarda en el navegador
 -- de quien lo publicó.
-revoke update (resolved) on public.reports from huellas_app;
-revoke update on public.reports from huellas_app;
+revoke update (resolved) on public.reports from :approle;
+revoke update on public.reports from :approle;
 drop policy if exists "reports_public_resolve" on public.reports;
 
 -- Si ya corriste una versión anterior de este script, límpiala antes de
 -- que la función submit_report() se vuelva el único camino de inserción:
 drop policy if exists "reports_public_insert" on public.reports;
-revoke insert on public.reports from huellas_app;
+revoke insert on public.reports from :approle;
 
 -- ============================================================
 -- Fase 2 — rate limiting y anti-spam para nuevos reportes
@@ -98,12 +106,12 @@ create index if not exists report_rate_limits_ip_idx
   on public.report_rate_limits (ip_hash, action, created_at);
 
 alter table public.report_rate_limits enable row level security;
--- Sin policies ni grants: cerrada por completo a huellas_app.
+-- Sin policies ni grants: cerrada por completo al rol de la app.
 
 -- Token secreto de cada reporte: solo quien lo creó lo tiene (se lo
 -- devuelve submit_report() y el navegador lo guarda en localStorage).
 -- Es la única forma de marcar ese reporte como resuelto. Cerrada por
--- completo a huellas_app: nadie puede leerla directamente.
+-- completo al rol de la app: nadie puede leerla directamente.
 create table if not exists public.report_tokens (
   report_id uuid primary key references public.reports (id) on delete cascade,
   token text not null,
@@ -114,7 +122,7 @@ alter table public.report_tokens enable row level security;
 
 -- Única forma de crear un reporte. Corre con los privilegios del dueño de
 -- la función (security definer), así que puede leer/escribir report_rate_limits
--- y reports aunque el que llama (huellas_app) no tenga permiso directo sobre esas
+-- y reports aunque el que llama (el rol de la app) no tenga permiso directo sobre esas
 -- tablas. Rechaza envíos con el campo trampa (honeypot) lleno, envíos
 -- sospechosamente rápidos, y más de 6 reportes por IP en 20 minutos.
 -- Devuelve el id del reporte y un token secreto de una sola vez: es lo
@@ -190,7 +198,7 @@ $$;
 
 grant execute on function public.submit_report(
   text, text, text, text, text, text, double precision, double precision, text, text, text, text, timestamptz, text
-) to huellas_app;
+) to :approle;
 
 -- Única forma de marcar un reporte como resuelto: exige el token que
 -- solo tiene el navegador que lo creó. Devuelve true si funcionó.
@@ -220,7 +228,7 @@ begin
 end;
 $$;
 
-grant execute on function public.resolve_report(uuid, text) to huellas_app;
+grant execute on function public.resolve_report(uuid, text) to :approle;
 
 -- "Reportar contenido": cualquiera puede marcar un reporte para revisión.
 -- Sin lectura pública; se revisa manualmente (ver docs/backend.md — por ahora
@@ -234,7 +242,7 @@ create table if not exists public.report_flags (
 );
 
 alter table public.report_flags enable row level security;
--- Sin policies ni grants directos: cerrada por completo a huellas_app, igual
+-- Sin policies ni grants directos: cerrada por completo al rol de la app, igual
 -- que reports — la única puerta de entrada es flag_report() (abajo), con la
 -- misma protección honeypot/timing/rate-limit que submit_report().
 
@@ -284,7 +292,7 @@ begin
 end;
 $$;
 
-grant execute on function public.flag_report(uuid, text, text, timestamptz, text) to huellas_app;
+grant execute on function public.flag_report(uuid, text, text, timestamptz, text) to :approle;
 
 create table if not exists public.shelters (
   id uuid primary key default gen_random_uuid(),
@@ -306,7 +314,7 @@ alter table public.shelters add column if not exists website text;
 alter table public.shelters add column if not exists is_exact_location boolean not null default false;
 
 alter table public.shelters enable row level security;
-grant select on public.shelters to huellas_app;
+grant select on public.shelters to :approle;
 
 create policy "shelters_public_select" on public.shelters
   for select using (true);
@@ -407,4 +415,4 @@ begin
 end;
 $$;
 
-grant execute on function public.suggest_shelter(text, text, text, text, text, text, timestamptz, text) to huellas_app;
+grant execute on function public.suggest_shelter(text, text, text, text, text, text, timestamptz, text) to :approle;
