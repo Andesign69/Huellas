@@ -3,7 +3,8 @@
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { ArrowLeft, PawPrint, MessageCircle, CheckCircle2, Flag, Share2 } from "lucide-react";
+import { Dialog } from "@base-ui/react/dialog";
+import { ArrowLeft, PawPrint, MessageCircle, CheckCircle2, Flag, Share2, X } from "lucide-react";
 import { apiFetch } from "@/lib/api-client";
 import Logo from "@/components/Logo";
 import StatusBadge from "@/components/StatusBadge";
@@ -43,6 +44,7 @@ export default function MascotaDetailPage({ params }: { params: Promise<{ id: st
   const [flagSubmitted, setFlagSubmitted] = useState(false);
   const [resolveToken] = useState<string | null>(() => getResolveToken(id));
   const [shared, setShared] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   async function handleShare() {
     if (!report) return;
@@ -164,18 +166,25 @@ export default function MascotaDetailPage({ params }: { params: Promise<{ id: st
         <>
           <div className="relative mx-4 h-72 overflow-hidden rounded-2xl bg-muted">
             {report.photo_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={report.photo_url}
-                alt={report.name || SPECIES_LABEL[report.species]}
-                className="h-full w-full object-cover"
-              />
+              <button
+                type="button"
+                onClick={() => setLightboxOpen(true)}
+                className="block h-full w-full"
+                aria-label="Ver foto completa"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={report.photo_url}
+                  alt={report.name || SPECIES_LABEL[report.species]}
+                  className="h-full w-full object-cover"
+                />
+              </button>
             ) : (
               <div className="flex h-full w-full items-center justify-center text-muted-foreground">
                 <PawPrint className="h-14 w-14" />
               </div>
             )}
-            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-4">
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-4">
               <StatusBadge status={report.status} className="mb-2" />
               <p className="font-heading text-2xl font-extrabold text-white">
                 {report.name?.trim() || SPECIES_LABEL[report.species]}
@@ -187,6 +196,31 @@ export default function MascotaDetailPage({ params }: { params: Promise<{ id: st
               </p>
             </div>
           </div>
+
+          {report.photo_url && (
+            <Dialog.Root open={lightboxOpen} onOpenChange={setLightboxOpen}>
+              <Dialog.Portal>
+                <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/90" />
+                <Dialog.Popup className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                  <Dialog.Title className="sr-only">
+                    {report.name?.trim() || SPECIES_LABEL[report.species]}
+                  </Dialog.Title>
+                  <Dialog.Close
+                    className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-black/50 text-white"
+                    aria-label="Cerrar"
+                  >
+                    <X className="h-5 w-5" />
+                  </Dialog.Close>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={report.photo_url}
+                    alt={report.name || SPECIES_LABEL[report.species]}
+                    className="max-h-full max-w-full object-contain"
+                  />
+                </Dialog.Popup>
+              </Dialog.Portal>
+            </Dialog.Root>
+          )}
 
           <div className="mx-4 mt-4 rounded-2xl border border-border bg-card p-4">
             <h2 className="font-heading text-lg font-bold text-primary">Detalles</h2>

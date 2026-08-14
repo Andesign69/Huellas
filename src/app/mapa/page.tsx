@@ -36,6 +36,7 @@ export default function MapaPage() {
   const [speciesFilter, setSpeciesFilter] = useState("todas");
   const [view, setView] = useState<"lista" | "mapa">("lista");
   const [shelters, setShelters] = useState<Shelter[]>([]);
+  const [showAllCities, setShowAllCities] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -63,14 +64,29 @@ export default function MapaPage() {
     };
   }, []);
 
-  const cityOptions = useMemo(() => {
-    const cities = Array.from(new Set(reports.map((r) => r.city.trim()))).sort((a, b) =>
-      a.localeCompare(b, "es")
+  const cityStats = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const r of reports) {
+      const city = r.city.trim();
+      counts.set(city, (counts.get(city) ?? 0) + 1);
+    }
+    const byCount = Array.from(counts.keys()).sort(
+      (a, b) => counts.get(b)! - counts.get(a)! || a.localeCompare(b, "es")
     );
-    return [{ value: "todas", label: "Todas" }, ...cities.map((c) => ({ value: c, label: c }))];
+    return { top5: byCount.slice(0, 5), rest: byCount.slice(5).sort((a, b) => a.localeCompare(b, "es")) };
   }, [reports]);
 
-  const effectiveCityFilter = cityOptions.length > 2 ? cityFilter : "todas";
+  const cityOptions = useMemo(() => {
+    // Ciudades priorizadas por cantidad de reportes (más chips relevantes
+    // primero); las demás quedan colapsadas detrás de "ver más" para que la
+    // fila de chips no siga creciendo y empujando el contenido hacia abajo
+    // a medida que se suman ciudades nuevas.
+    const cities = showAllCities ? [...cityStats.top5, ...cityStats.rest] : cityStats.top5;
+    return [{ value: "todas", label: "Todas" }, ...cities.map((c) => ({ value: c, label: c }))];
+  }, [cityStats, showAllCities]);
+
+  const totalCities = cityStats.top5.length + cityStats.rest.length;
+  const effectiveCityFilter = totalCities > 1 ? cityFilter : "todas";
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -123,10 +139,21 @@ export default function MapaPage() {
           />
         </div>
 
-        {cityOptions.length > 2 && (
+        {totalCities > 1 && (
           <div>
             <p className="mb-1 text-xs font-semibold text-muted-foreground">Ciudad</p>
-            <PillGroup value={cityFilter} onChange={setCityFilter} options={cityOptions} size="sm" />
+            <div className="flex flex-wrap items-center gap-1.5">
+              <PillGroup value={cityFilter} onChange={setCityFilter} options={cityOptions} size="sm" />
+              {cityStats.rest.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowAllCities((v) => !v)}
+                  className="rounded-full px-3 py-1 text-xs font-medium text-muted-foreground underline underline-offset-2"
+                >
+                  {showAllCities ? "Ver menos" : `Ver más (${cityStats.rest.length})`}
+                </button>
+              )}
+            </div>
           </div>
         )}
         <div>
